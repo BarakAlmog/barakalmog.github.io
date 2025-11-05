@@ -303,14 +303,57 @@
       rightFrame.position.x = screenWidth / 2 + frameThickness / 2
       dashboardGroup.add(rightFrame)
 
-      // Screen with image texture
+      // Screen with image texture - using ShaderMaterial for ripple effect
       const screenGeometry = new THREE.PlaneGeometry(screenWidth, screenHeight)
-      const screenMaterial = new THREE.MeshBasicMaterial({
+
+      // Shader material with ripple distortion
+      const screenMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          uTexture: { value: null },
+          uRippleCenter: { value: new THREE.Vector2(0.5, 0.5) },
+          uRippleStrength: { value: 0.0 },
+          uRippleRadius: { value: 0.0 },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D uTexture;
+          uniform vec2 uRippleCenter;
+          uniform float uRippleStrength;
+          uniform float uRippleRadius;
+          varying vec2 vUv;
+
+          void main() {
+            vec2 uv = vUv;
+
+            // Calculate distance from ripple center
+            float dist = distance(uv, uRippleCenter);
+
+            // Create ripple wave effect
+            if (dist < uRippleRadius && uRippleStrength > 0.0) {
+              float ripple = sin((dist - uRippleRadius) * 30.0) * uRippleStrength;
+              float falloff = 1.0 - (dist / uRippleRadius);
+              ripple *= falloff;
+
+              // Distort UVs based on ripple
+              vec2 direction = normalize(uv - uRippleCenter);
+              uv += direction * ripple * 0.03;
+            }
+
+            gl_FragColor = texture2D(uTexture, uv);
+          }
+        `,
         toneMapped: false,
       })
 
       const screen = new THREE.Mesh(screenGeometry, screenMaterial)
       screen.castShadow = true
+      screen.name = 'dashboardScreen' // Name it for raycasting
       dashboardGroup.add(screen)
 
       // Load the dashboard image
@@ -321,7 +364,7 @@
           texture.colorSpace = THREE.SRGBColorSpace
           texture.minFilter = THREE.LinearFilter
           texture.magFilter = THREE.LinearFilter
-          screenMaterial.map = texture
+          screenMaterial.uniforms.uTexture.value = texture
           screenMaterial.needsUpdate = true
           document.getElementById('loading').style.display = 'none'
         },
@@ -351,6 +394,38 @@
       dashboardGroup.add(glow)
 
       scene.add(dashboardGroup)
+
+      // Raycaster for click detection
+      const raycaster = new THREE.Raycaster()
+      const mouse = new THREE.Vector2()
+      let activeRipple = null // Store active ripple state
+
+      // Click handler for ripple effect
+      window.addEventListener('click', (event) => {
+        // Calculate mouse position in normalized device coordinates
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+
+        // Update raycaster
+        raycaster.setFromCamera(mouse, camera)
+
+        // Check for intersections with the dashboard screen
+        const intersects = raycaster.intersectObject(screen, false)
+
+        if (intersects.length > 0) {
+          const intersect = intersects[0]
+
+          // Get UV coordinates at click point
+          const uv = intersect.uv
+
+          // Start new ripple
+          activeRipple = {
+            center: new THREE.Vector2(uv.x, uv.y),
+            time: 0,
+            maxTime: 1.5, // Duration in seconds
+          }
+        }
+      })
 
       // Floating particles (stars)
       const particlesGeometry = new THREE.BufferGeometry()
@@ -457,6 +532,24 @@
       function animate() {
         requestAnimationFrame(animate)
         time += 0.01
+
+        // Animate shader-based ripple
+        if (activeRipple) {
+          activeRipple.time += 0.016 // ~60fps
+
+          const progress = activeRipple.time / activeRipple.maxTime
+
+          if (progress < 1.0) {
+            // Update shader uniforms
+            screenMaterial.uniforms.uRippleCenter.value = activeRipple.center
+            screenMaterial.uniforms.uRippleRadius.value = progress * 0.5 // Expand to 50% of screen
+            screenMaterial.uniforms.uRippleStrength.value = (1.0 - progress) * 1.5 // Fade out
+          } else {
+            // Reset ripple
+            screenMaterial.uniforms.uRippleStrength.value = 0.0
+            activeRipple = null
+          }
+        }
 
         // Handle turning (Arrow Left/Right)
         if (keys.turnLeft) cameraRotation.y += turnSpeed
