@@ -1,1424 +1,1619 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="he" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>שיחת ייעוץ — ברק אלמוג | Pip-Boy 3000</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a1a0a'/%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%2314FF00' stroke-width='2.5' opacity='0.6'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-family='monospace' font-weight='bold' font-size='32' fill='%2314FF00'%3E7%3C/text%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --green: #14FF00;
-      --green-dim: #0a8a00;
-      --green-bright: #33ff22;
-      --green-muted: rgba(20, 255, 0, 0.35);
-      --green-faint: rgba(20, 255, 0, 0.12);
-      --green-glow: rgba(20, 255, 0, 0.6);
-      --bg: #0a1a0a;
-      --bg-screen: #061206;
-      --frame: #2a2a28;
-      --frame-light: #3a3a36;
-      --frame-dark: #1a1a18;
-      --frame-edge: #444440;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      background: #111;
-    }
-
-    body {
-      font-family: 'Heebo', sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(ellipse at center, #1a1a18 0%, #0d0d0c 50%, #050505 100%);
-    }
-
-    /* ========== PIP-BOY DEVICE FRAME ========== */
-
-    .pipboy-device {
-      position: relative;
-      width: 95vw;
-      max-width: 900px;
-      height: 92vh;
-      max-height: 650px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* Outer hardware frame */
-    .pipboy-frame {
-      position: relative;
-      background: linear-gradient(180deg, var(--frame-light) 0%, var(--frame) 20%, var(--frame-dark) 100%);
-      border-radius: 24px;
-      padding: 12px 14px 10px;
-      box-shadow:
-        0 0 0 2px var(--frame-edge),
-        0 4px 20px rgba(0,0,0,0.6),
-        inset 0 1px 0 rgba(255,255,255,0.08),
-        inset 0 -2px 0 rgba(0,0,0,0.3);
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* Corner screws */
-    .pipboy-frame::before,
-    .pipboy-frame::after {
-      content: '';
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, #666, #333 60%, #222);
-      box-shadow: inset 0 1px 2px rgba(255,255,255,0.15), 0 1px 3px rgba(0,0,0,0.5);
-      z-index: 10;
-    }
-    .pipboy-frame::before { top: 8px; right: 10px; }
-    .pipboy-frame::after { top: 8px; left: 10px; }
-
-    .screw-bl, .screw-br {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, #666, #333 60%, #222);
-      box-shadow: inset 0 1px 2px rgba(255,255,255,0.15), 0 1px 3px rgba(0,0,0,0.5);
-      z-index: 10;
-      bottom: 8px;
-    }
-    .screw-bl { left: 10px; }
-    .screw-br { right: 10px; }
-
-    /* Screw cross lines */
-    .screw-bl::after, .screw-br::after,
-    .pipboy-frame::before, .pipboy-frame::after {
-      /* The cross line on the screw */
-    }
-
-    /* Brand label on frame */
-    .frame-label {
-      position: absolute;
-      top: 2px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
-      color: rgba(255,255,255,0.15);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      z-index: 10;
-    }
-
-    /* ========== CRT SCREEN ========== */
-
-    .crt-screen {
-      position: relative;
-      background: var(--bg-screen);
-      border-radius: 14px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow:
-        inset 0 0 60px rgba(0,0,0,0.8),
-        inset 0 0 20px rgba(0,0,0,0.5),
-        0 0 15px rgba(20, 255, 0, 0.08);
-    }
-
-    /* Scanlines overlay */
-    .crt-screen::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.15) 2px,
-        rgba(0, 0, 0, 0.15) 4px
-      );
-      pointer-events: none;
-      z-index: 5;
-      border-radius: 14px;
-    }
-
-    /* Vignette / CRT curvature effect */
-    .crt-screen::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(
-        ellipse at center,
-        transparent 55%,
-        rgba(0, 0, 0, 0.4) 85%,
-        rgba(0, 0, 0, 0.7) 100%
-      );
-      pointer-events: none;
-      z-index: 6;
-      border-radius: 14px;
-    }
-
-    /* Screen flicker animation */
-    @keyframes flicker {
-      0%, 95%, 100% { opacity: 1; }
-      96% { opacity: 0.92; }
-      97% { opacity: 0.98; }
-      98% { opacity: 0.94; }
-    }
-
-    .screen-content {
-      position: relative;
-      z-index: 2;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      animation: flicker 8s infinite;
-      padding: 0;
-      overflow: hidden;
-    }
-
-    /* Screen glow */
-    .crt-glow {
-      position: absolute;
-      inset: -5px;
-      border-radius: 18px;
-      box-shadow: 0 0 30px rgba(20, 255, 0, 0.05), 0 0 60px rgba(20, 255, 0, 0.03);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ========== TOP BAR — STATUS ========== */
-
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 16px 4px;
-      border-bottom: 1px solid var(--green-faint);
-      font-family: 'VT323', monospace;
-      font-size: 14px;
-      color: var(--green-dim);
-      flex-shrink: 0;
-      direction: ltr;
-    }
-
-    .top-bar .model-name {
-      color: var(--green);
-      font-size: 16px;
-      letter-spacing: 2px;
-    }
-
-    .status-group {
-      display: flex;
-      gap: 16px;
-      align-items: center;
-    }
-
-    .signal-bars {
-      display: flex;
-      gap: 2px;
-      align-items: flex-end;
-      height: 12px;
-    }
-    .signal-bars span {
-      width: 3px;
-      background: var(--green);
-      display: block;
-    }
-    .signal-bars span:nth-child(1) { height: 3px; }
-    .signal-bars span:nth-child(2) { height: 6px; }
-    .signal-bars span:nth-child(3) { height: 9px; }
-    .signal-bars span:nth-child(4) { height: 12px; }
-    .signal-bars span.off { background: var(--green-faint); }
-
-    .battery {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-    }
-    .battery-body {
-      width: 20px;
-      height: 10px;
-      border: 1px solid var(--green);
-      border-radius: 2px;
-      padding: 1px;
-      display: flex;
-    }
-    .battery-fill {
-      flex: 1;
-      background: var(--green);
-      border-radius: 1px;
-    }
-    .battery-tip {
-      width: 2px;
-      height: 5px;
-      background: var(--green);
-      border-radius: 0 1px 1px 0;
-    }
-
-    /* ========== TAB NAVIGATION ========== */
-
-    .tab-nav {
-      display: flex;
-      padding: 0 12px;
-      border-bottom: 2px solid var(--green-muted);
-      flex-shrink: 0;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .tab-nav::-webkit-scrollbar { display: none; }
-
-    .tab-btn {
-      font-family: 'Heebo', sans-serif;
-      font-weight: 700;
-      font-size: 14px;
-      color: rgba(20, 255, 0, 0.55);
-      background: none;
-      border: none;
-      padding: 10px 14px 8px;
-      cursor: pointer;
-      position: relative;
-      white-space: nowrap;
-      letter-spacing: 0.5px;
-      transition: color 0.15s;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
-    }
-
-    .tab-btn:hover {
-      color: var(--green);
-    }
-
-    .tab-btn.active {
-      color: var(--green);
-      border-bottom-color: var(--green);
-      text-shadow: 0 0 12px var(--green-glow), 0 0 4px var(--green-glow);
-    }
-
-    .tab-btn::before {
-      content: '[ ';
-      font-family: 'VT323', monospace;
-      font-weight: 400;
-    }
-    .tab-btn::after {
-      content: ' ]';
-      font-family: 'VT323', monospace;
-      font-weight: 400;
-    }
-
-    /* ========== TAB CONTENT ========== */
-
-    .tab-panels {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .tab-panel {
-      position: absolute;
-      inset: 0;
-      padding: 20px 24px;
-      overflow-y: auto;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.1s;
-      scrollbar-width: thin;
-      scrollbar-color: var(--green-dim) transparent;
-    }
-    .tab-panel::-webkit-scrollbar { width: 4px; }
-    .tab-panel::-webkit-scrollbar-track { background: transparent; }
-    .tab-panel::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 2px; }
-
-    .tab-panel.active {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    /* Screen refresh flash on tab switch */
-    @keyframes screenFlash {
-      0% { opacity: 0.5; background: var(--green-faint); }
-      100% { opacity: 0; background: transparent; }
-    }
-
-    .tab-panel.flash::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: var(--green-faint);
-      animation: screenFlash 0.15s ease-out forwards;
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    /* ========== TYPOGRAPHY ========== */
-
-    h1, h2, h3 {
-      font-family: 'Heebo', sans-serif;
-      color: var(--green);
-      text-shadow: 0 0 8px var(--green-glow);
-    }
-
-    h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
-    h2 { font-size: 20px; font-weight: 700; margin-bottom: 12px; letter-spacing: 0.5px; }
-    h3 { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
-
-    .label {
-      font-family: 'VT323', monospace;
-      font-size: 15px;
-      color: var(--green-dim);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      direction: ltr;
-      text-align: right;
-    }
-
-    p, li {
-      color: rgba(20, 255, 0, 0.8);
-      font-size: 15px;
-      line-height: 1.75;
-    }
-
-    .text-dim {
-      color: var(--green-dim);
-    }
-
-    .text-bright {
-      color: var(--green-bright);
-      text-shadow: 0 0 6px var(--green-glow);
-    }
-
-    /* ========== TAB 1: ABOUT ========== */
-
-    .about-layout {
-      display: flex;
-      gap: 24px;
-      align-items: flex-start;
-    }
-
-    .headshot-container {
-      flex-shrink: 0;
-      width: 240px;
-      height: 240px;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 2px solid var(--green-dim);
-      position: relative;
-      box-shadow: 0 0 20px rgba(20, 255, 0, 0.1);
-    }
-
-    .headshot-container img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: grayscale(100%) brightness(1.1) contrast(1.2);
-      mix-blend-mode: screen;
-    }
-
-    /* Green CRT overlay on image */
-    .headshot-container::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: rgba(10, 80, 0, 0.5);
-      mix-blend-mode: multiply;
-    }
-
-    .about-text {
-      flex: 1;
-    }
-
-    .about-text .subtitle {
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: var(--green-dim);
-      margin-bottom: 4px;
-      direction: ltr;
-      text-align: right;
-      letter-spacing: 1px;
-    }
-
-    .about-text h1 {
-      margin-bottom: 2px;
-    }
-
-    .about-text .role {
-      font-size: 14px;
-      color: var(--green-dim);
-      margin-bottom: 16px;
-      font-weight: 500;
-    }
-
-    .about-text .headline {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--green);
-      margin-bottom: 8px;
-      text-shadow: 0 0 10px var(--green-glow);
-    }
-
-    .about-text .description {
-      font-size: 15px;
-      color: rgba(20, 255, 0, 0.7);
-      line-height: 1.8;
-    }
-
-    .divider {
-      border: none;
-      border-top: 1px solid var(--green-faint);
-      margin: 18px 0;
-    }
-
-    .vault-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border: 1px solid rgba(20, 255, 0, 0.12);
-      border-radius: 6px;
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: rgba(20, 255, 0, 0.25);
-      letter-spacing: 2px;
-      margin-top: 12px;
-      direction: ltr;
-    }
-
-    .vault-badge .vault-icon {
-      width: 18px;
-      height: 18px;
-      border: 1.5px solid var(--green);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      font-family: 'Press Start 2P', monospace;
-    }
-
-    /* ========== TAB 2: FOR WHO ========== */
-
-    .checklist {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .checklist li {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      padding: 12px 16px;
-      background: rgba(20, 255, 0, 0.04);
-      border: 1px solid rgba(20, 255, 0, 0.07);
-      border-radius: 6px;
-    }
-
-    .check-marker {
-      font-family: 'VT323', monospace;
-      font-size: 20px;
-      color: var(--green);
-      flex-shrink: 0;
-      line-height: 1.5;
-      text-shadow: 0 0 8px var(--green-glow);
-    }
-
-    .checklist li span {
-      font-size: 15px;
-      line-height: 1.7;
-    }
-
-    .terminal-prompt {
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: var(--green-dim);
-      margin-top: 20px;
-      direction: rtl;
-      text-align: right;
-    }
-
-    .terminal-prompt .cursor {
-      display: inline-block;
-      width: 8px;
-      height: 16px;
-      background: var(--green);
-      margin-left: 4px;
-      animation: blink 1s step-end infinite;
-      vertical-align: text-bottom;
-    }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    /* ========== TAB 3: EXPERIENCE — INVENTORY ========== */
-
-    .inventory-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .inv-item {
-      border: 1px solid rgba(20, 255, 0, 0.15);
-      border-radius: 6px;
-      padding: 14px 16px;
-      background: rgba(20, 255, 0, 0.03);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .inv-item::before {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: var(--green);
-      opacity: 0.4;
-    }
-
-    .inv-item-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
-
-    .inv-icon {
-      font-family: 'VT323', monospace;
-      font-size: 16px;
-      color: var(--green);
-      width: 24px;
-      height: 24px;
-      border: 1px solid var(--green-dim);
-      border-radius: 3px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      direction: ltr;
-    }
-
-    .inv-item h3 {
-      font-size: 15px;
-      margin-bottom: 0;
-    }
-
-    .inv-item p {
-      font-size: 13.5px;
-      color: rgba(20, 255, 0, 0.6);
-      line-height: 1.7;
-      margin-right: 34px;
-    }
-
-    .tech-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 16px;
-      padding-top: 14px;
-      border-top: 1px solid var(--green-faint);
-      justify-content: center;
-    }
-
-    .tech-tag {
-      font-family: 'VT323', monospace;
-      font-size: 14px;
-      color: rgba(20, 255, 0, 0.7);
-      padding: 3px 10px;
-      border: 1px solid rgba(20, 255, 0, 0.2);
-      border-radius: 3px;
-      background: rgba(20, 255, 0, 0.04);
-      letter-spacing: 1px;
-      direction: ltr;
-    }
-
-    /* ========== TAB 4: THE SESSION ========== */
-
-    .steps-section, .deliverables-section {
-      margin-bottom: 12px;
-    }
-
-    .step {
-      display: flex;
-      gap: 14px;
-      margin-bottom: 6px;
-      padding: 8px 14px;
-      border-right: 2px solid var(--green-dim);
-    }
-
-    .step-num {
-      font-family: 'VT323', monospace;
-      font-size: 32px;
-      color: var(--green);
-      text-shadow: 0 0 12px var(--green-glow);
-      line-height: 1;
-      flex-shrink: 0;
-      width: 30px;
-      direction: ltr;
-      text-align: center;
-    }
-
-    .step-content h3 {
-      font-size: 16px;
-      margin-bottom: 4px;
-    }
-
-    .step-content p {
-      font-size: 14px;
-      color: rgba(20, 255, 0, 0.65);
-      line-height: 1.7;
-    }
-
-    .section-label {
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: var(--green);
-      letter-spacing: 2px;
-      margin-bottom: 8px;
-      padding-bottom: 4px;
-      border-bottom: 1px solid var(--green-faint);
-      direction: ltr;
-      text-align: right;
-    }
-
-    .deliverable {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 6px;
-      align-items: flex-start;
-    }
-
-    .deliverable-icon {
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: var(--green);
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .deliverable h3 {
-      font-size: 14px;
-      margin-bottom: 2px;
-    }
-
-    .deliverable p {
-      font-size: 13.5px;
-      color: rgba(20, 255, 0, 0.6);
-      line-height: 1.65;
-    }
-
-    /* ========== TAB 5: BOOK ========== */
-
-    .book-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      text-align: center;
-      gap: 8px;
-    }
-
-    .price-display {
-      font-family: 'VT323', monospace;
-      font-size: 42px;
-      color: var(--green);
-      text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(20, 255, 0, 0.2);
-      letter-spacing: 2px;
-      direction: rtl;
-      line-height: 1;
-    }
-
-    .session-details {
-      display: flex;
-      gap: 20px;
-      justify-content: center;
-      margin: 8px 0 24px;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      color: var(--green-dim);
-      letter-spacing: 1px;
-      direction: ltr;
-    }
-
-    .session-details span {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .session-details .dot {
-      width: 4px;
-      height: 4px;
-      background: var(--green-dim);
-      border-radius: 50%;
-    }
-
-    .cta-button {
-      font-family: 'Heebo', sans-serif;
-      font-weight: 700;
-      font-size: 18px;
-      color: var(--bg);
-      background: var(--green);
-      border: none;
-      padding: 14px 48px;
-      border-radius: 6px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-      text-shadow: none;
-      box-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(20, 255, 0, 0.15);
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .cta-button:hover {
-      background: var(--green-bright);
-      box-shadow: 0 0 30px var(--green-glow), 0 0 60px rgba(20, 255, 0, 0.25);
-    }
-
-    .cta-button:active {
-      transform: scale(0.98);
-    }
-
-    /* Button scanline effect */
-    .cta-button::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.08) 2px,
-        rgba(0, 0, 0, 0.08) 4px
-      );
-      pointer-events: none;
-    }
-
-    .stripe-note {
-      font-family: 'VT323', monospace;
-      font-size: 15px;
-      color: var(--green-dim);
-      margin-top: 16px;
-      letter-spacing: 1px;
-    }
-
-    .legal-links {
-      margin-top: 12px;
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-    }
-
-    .legal-links a {
-      font-family: 'Heebo', sans-serif;
-      font-size: 13px;
-      color: rgba(20, 255, 0, 0.5);
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      letter-spacing: 0.5px;
-      transition: color 0.15s, text-shadow 0.15s;
-    }
-
-    .legal-links a:hover {
-      color: var(--green);
-      text-shadow: 0 0 6px var(--green-glow);
-    }
-
-    /* ========== BOTTOM STATUS BAR ========== */
-
-    .bottom-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 16px;
-      border-top: 1px solid var(--green-faint);
-      font-family: 'VT323', monospace;
-      font-size: 13px;
-      color: var(--green-dim);
-      flex-shrink: 0;
-      direction: ltr;
-    }
-
-    .bottom-bar .stats {
-      display: flex;
-      gap: 14px;
-    }
-
-    .bottom-bar .stat {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .hp-bar {
-      width: 50px;
-      height: 6px;
-      background: rgba(20, 255, 0, 0.15);
-      border-radius: 2px;
-      overflow: hidden;
-      display: inline-block;
-      vertical-align: middle;
-    }
-
-    .hp-bar-fill {
-      height: 100%;
-      width: 100%;
-      background: var(--green);
-      border-radius: 2px;
-    }
-
-    .bottom-bar .copyright {
-      direction: rtl;
-      font-size: 12px;
-    }
-
-    /* ========== RADIATION SYMBOL (decorative) ========== */
-
-    .radiation {
-      position: absolute;
-      bottom: 14px;
-      left: 14px;
-      width: 28px;
-      height: 28px;
-      opacity: 0.08;
-      z-index: 1;
-    }
-
-    .radiation svg {
-      width: 100%;
-      height: 100%;
-      fill: var(--green);
-    }
-
-    /* ========== MOBILE RESPONSIVE ========== */
-
-    @media (max-width: 640px) {
-      html, body {
-        overflow: auto;
-        height: auto;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>שיחת ייעוץ — ברק אלמוג | Pip-Boy 3000</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a1a0a'/%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%2314FF00' stroke-width='2.5' opacity='0.6'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-family='monospace' font-weight='bold' font-size='32' fill='%2314FF00'%3E7%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&family=Heebo:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --green: #14ff00;
+        --green-dim: #0a8a00;
+        --green-bright: #33ff22;
+        --green-muted: rgba(20, 255, 0, 0.35);
+        --green-faint: rgba(20, 255, 0, 0.12);
+        --green-glow: rgba(20, 255, 0, 0.6);
+        --bg: #0a1a0a;
+        --bg-screen: #061206;
+        --frame: #2a2a28;
+        --frame-light: #3a3a36;
+        --frame-dark: #1a1a18;
+        --frame-edge: #444440;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        background: #111;
       }
 
       body {
-        padding: 8px;
-        align-items: flex-start;
+        font-family: 'Heebo', sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(
+          ellipse at center,
+          #1a1a18 0%,
+          #0d0d0c 50%,
+          #050505 100%
+        );
       }
+
+      /* ========== PIP-BOY DEVICE FRAME ========== */
 
       .pipboy-device {
-        width: 100%;
-        max-width: 100%;
-        height: auto;
-        max-height: none;
-        min-height: 100vh;
+        position: relative;
+        width: 95vw;
+        max-width: 900px;
+        height: 92vh;
+        max-height: 650px;
+        display: flex;
+        flex-direction: column;
       }
 
+      /* Outer hardware frame */
       .pipboy-frame {
-        border-radius: 16px;
-        padding: 8px 6px 6px;
+        position: relative;
+        background: linear-gradient(
+          180deg,
+          var(--frame-light) 0%,
+          var(--frame) 20%,
+          var(--frame-dark) 100%
+        );
+        border-radius: 24px;
+        padding: 12px 14px 10px;
+        box-shadow:
+          0 0 0 2px var(--frame-edge),
+          0 4px 20px rgba(0, 0, 0, 0.6),
+          inset 0 1px 0 rgba(255, 255, 255, 0.08),
+          inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
+
+      /* Corner screws */
+      .pipboy-frame::before,
+      .pipboy-frame::after {
+        content: '';
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #666, #333 60%, #222);
+        box-shadow:
+          inset 0 1px 2px rgba(255, 255, 255, 0.15),
+          0 1px 3px rgba(0, 0, 0, 0.5);
+        z-index: 10;
+      }
+      .pipboy-frame::before {
+        top: 8px;
+        right: 10px;
+      }
+      .pipboy-frame::after {
+        top: 8px;
+        left: 10px;
+      }
+
+      .screw-bl,
+      .screw-br {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #666, #333 60%, #222);
+        box-shadow:
+          inset 0 1px 2px rgba(255, 255, 255, 0.15),
+          0 1px 3px rgba(0, 0, 0, 0.5);
+        z-index: 10;
+        bottom: 8px;
+      }
+      .screw-bl {
+        left: 10px;
+      }
+      .screw-br {
+        right: 10px;
+      }
+
+      /* Screw cross lines */
+      .screw-bl::after,
+      .screw-br::after,
+      .pipboy-frame::before,
+      .pipboy-frame::after {
+        /* The cross line on the screw */
+      }
+
+      /* Brand label on frame */
+      .frame-label {
+        position: absolute;
+        top: 2px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: 'Press Start 2P', monospace;
+        font-size: 6px;
+        color: rgba(255, 255, 255, 0.15);
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        z-index: 10;
+      }
+
+      /* ========== CRT SCREEN ========== */
 
       .crt-screen {
-        border-radius: 10px;
+        position: relative;
+        background: var(--bg-screen);
+        border-radius: 14px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow:
+          inset 0 0 60px rgba(0, 0, 0, 0.8),
+          inset 0 0 20px rgba(0, 0, 0, 0.5),
+          0 0 15px rgba(20, 255, 0, 0.08);
       }
 
+      /* Scanlines overlay */
+      .crt-screen::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.15) 2px,
+          rgba(0, 0, 0, 0.15) 4px
+        );
+        pointer-events: none;
+        z-index: 5;
+        border-radius: 14px;
+      }
+
+      /* Vignette / CRT curvature effect */
+      .crt-screen::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at center,
+          transparent 55%,
+          rgba(0, 0, 0, 0.4) 85%,
+          rgba(0, 0, 0, 0.7) 100%
+        );
+        pointer-events: none;
+        z-index: 6;
+        border-radius: 14px;
+      }
+
+      /* Screen flicker animation */
+      @keyframes flicker {
+        0%,
+        95%,
+        100% {
+          opacity: 1;
+        }
+        96% {
+          opacity: 0.92;
+        }
+        97% {
+          opacity: 0.98;
+        }
+        98% {
+          opacity: 0.94;
+        }
+      }
+
+      .screen-content {
+        position: relative;
+        z-index: 2;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        animation: flicker 8s infinite;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      /* Screen glow */
+      .crt-glow {
+        position: absolute;
+        inset: -5px;
+        border-radius: 18px;
+        box-shadow:
+          0 0 30px rgba(20, 255, 0, 0.05),
+          0 0 60px rgba(20, 255, 0, 0.03);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ========== TOP BAR — STATUS ========== */
+
       .top-bar {
-        padding: 6px 10px 3px;
-        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 16px 4px;
+        border-bottom: 1px solid var(--green-faint);
+        font-family: 'VT323', monospace;
+        font-size: 14px;
+        color: var(--green-dim);
+        flex-shrink: 0;
+        direction: ltr;
       }
 
       .top-bar .model-name {
-        font-size: 13px;
+        color: var(--green);
+        font-size: 16px;
+        letter-spacing: 2px;
       }
 
+      .status-group {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .signal-bars {
+        display: flex;
+        gap: 2px;
+        align-items: flex-end;
+        height: 12px;
+      }
+      .signal-bars span {
+        width: 3px;
+        background: var(--green);
+        display: block;
+      }
+      .signal-bars span:nth-child(1) {
+        height: 3px;
+      }
+      .signal-bars span:nth-child(2) {
+        height: 6px;
+      }
+      .signal-bars span:nth-child(3) {
+        height: 9px;
+      }
+      .signal-bars span:nth-child(4) {
+        height: 12px;
+      }
+      .signal-bars span.off {
+        background: var(--green-faint);
+      }
+
+      .battery {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+      .battery-body {
+        width: 20px;
+        height: 10px;
+        border: 1px solid var(--green);
+        border-radius: 2px;
+        padding: 1px;
+        display: flex;
+      }
+      .battery-fill {
+        flex: 1;
+        background: var(--green);
+        border-radius: 1px;
+      }
+      .battery-tip {
+        width: 2px;
+        height: 5px;
+        background: var(--green);
+        border-radius: 0 1px 1px 0;
+      }
+
+      /* ========== TAB NAVIGATION ========== */
+
       .tab-nav {
-        padding: 0 6px;
+        display: flex;
+        padding: 0 12px;
+        border-bottom: 2px solid var(--green-muted);
+        flex-shrink: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .tab-nav::-webkit-scrollbar {
+        display: none;
       }
 
       .tab-btn {
-        font-size: 12px;
-        padding: 8px 8px 6px;
+        font-family: 'Heebo', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        color: rgba(20, 255, 0, 0.55);
+        background: none;
+        border: none;
+        padding: 10px 14px 8px;
+        cursor: pointer;
+        position: relative;
+        white-space: nowrap;
+        letter-spacing: 0.5px;
+        transition: color 0.15s;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
       }
 
+      .tab-btn:hover {
+        color: var(--green);
+      }
+
+      .tab-btn.active {
+        color: var(--green);
+        border-bottom-color: var(--green);
+        text-shadow:
+          0 0 12px var(--green-glow),
+          0 0 4px var(--green-glow);
+      }
+
+      .tab-btn::before {
+        content: '[ ';
+        font-family: 'VT323', monospace;
+        font-weight: 400;
+      }
+      .tab-btn::after {
+        content: ' ]';
+        font-family: 'VT323', monospace;
+        font-weight: 400;
+      }
+
+      /* ========== TAB CONTENT ========== */
+
       .tab-panels {
+        flex: 1;
         position: relative;
-        min-height: 65vh;
+        overflow: hidden;
       }
 
       .tab-panel {
         position: absolute;
-        padding: 16px 14px;
+        inset: 0;
+        padding: 20px 24px;
+        overflow-y: auto;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.1s;
+        scrollbar-width: thin;
+        scrollbar-color: var(--green-dim) transparent;
+      }
+      .tab-panel::-webkit-scrollbar {
+        width: 4px;
+      }
+      .tab-panel::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .tab-panel::-webkit-scrollbar-thumb {
+        background: var(--green-dim);
+        border-radius: 2px;
       }
 
-      .about-layout {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
+      .tab-panel.active {
+        opacity: 1;
+        visibility: visible;
       }
 
-      .headshot-container {
-        width: 100px;
-        height: 100px;
+      /* Screen refresh flash on tab switch */
+      @keyframes screenFlash {
+        0% {
+          opacity: 0.5;
+          background: var(--green-faint);
+        }
+        100% {
+          opacity: 0;
+          background: transparent;
+        }
       }
 
-      .about-text .subtitle,
-      .about-text .role,
-      .about-text .headline,
-      .about-text .description {
-        text-align: center;
+      .tab-panel.flash::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--green-faint);
+        animation: screenFlash 0.15s ease-out forwards;
+        pointer-events: none;
+        z-index: 10;
       }
 
-      .about-text .label {
-        text-align: center;
+      /* ========== TYPOGRAPHY ========== */
+
+      h1,
+      h2,
+      h3 {
+        font-family: 'Heebo', sans-serif;
+        color: var(--green);
+        text-shadow: 0 0 8px var(--green-glow);
       }
 
-      h1 { font-size: 22px; }
-      h2 { font-size: 18px; }
-
-      .price-display { font-size: 48px; }
-
-      .session-details {
-        flex-direction: column;
-        gap: 4px;
-        align-items: center;
+      h1 {
+        font-size: 26px;
+        font-weight: 700;
+        margin-bottom: 6px;
       }
-
-      .session-details .dot { display: none; }
-
-      .cta-button {
-        padding: 12px 36px;
+      h2 {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        letter-spacing: 0.5px;
+      }
+      h3 {
         font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 8px;
       }
 
-      .bottom-bar {
-        flex-direction: column;
-        gap: 4px;
-        padding: 8px 10px;
-        text-align: center;
-      }
-
-      .vault-badge {
-        margin: 12px auto 0;
-      }
-
-      .inv-item p {
-        margin-right: 0;
-      }
-
-      .step {
-        flex-direction: column;
-        gap: 6px;
-      }
-
-      .step-num {
+      .label {
+        font-family: 'VT323', monospace;
+        font-size: 15px;
+        color: var(--green-dim);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        direction: ltr;
         text-align: right;
       }
 
+      p,
+      li {
+        color: rgba(20, 255, 0, 0.8);
+        font-size: 15px;
+        line-height: 1.75;
+      }
+
+      .text-dim {
+        color: var(--green-dim);
+      }
+
+      .text-bright {
+        color: var(--green-bright);
+        text-shadow: 0 0 6px var(--green-glow);
+      }
+
+      /* ========== TAB 1: ABOUT ========== */
+
+      .about-layout {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+      }
+
+      .headshot-container {
+        flex-shrink: 0;
+        width: 240px;
+        height: 240px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid var(--green-dim);
+        position: relative;
+        box-shadow: 0 0 20px rgba(20, 255, 0, 0.1);
+      }
+
+      .headshot-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: grayscale(100%) brightness(1.1) contrast(1.2);
+        mix-blend-mode: screen;
+      }
+
+      /* Green CRT overlay on image */
+      .headshot-container::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(10, 80, 0, 0.5);
+        mix-blend-mode: multiply;
+      }
+
+      .about-text {
+        flex: 1;
+      }
+
+      .about-text .subtitle {
+        font-family: 'VT323', monospace;
+        font-size: 18px;
+        color: var(--green-dim);
+        margin-bottom: 4px;
+        direction: ltr;
+        text-align: right;
+        letter-spacing: 1px;
+      }
+
+      .about-text h1 {
+        margin-bottom: 2px;
+      }
+
+      .about-text .role {
+        font-size: 14px;
+        color: var(--green-dim);
+        margin-bottom: 16px;
+        font-weight: 500;
+      }
+
+      .about-text .headline {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--green);
+        margin-bottom: 8px;
+        text-shadow: 0 0 10px var(--green-glow);
+      }
+
+      .about-text .description {
+        font-size: 15px;
+        color: rgba(20, 255, 0, 0.7);
+        line-height: 1.8;
+      }
+
+      .divider {
+        border: none;
+        border-top: 1px solid var(--green-faint);
+        margin: 18px 0;
+      }
+
+      .vault-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border: 1px solid rgba(20, 255, 0, 0.12);
+        border-radius: 6px;
+        font-family: 'VT323', monospace;
+        font-size: 16px;
+        color: rgba(20, 255, 0, 0.25);
+        letter-spacing: 2px;
+        margin-top: 12px;
+        direction: ltr;
+      }
+
+      .vault-badge .vault-icon {
+        width: 18px;
+        height: 18px;
+        border: 1.5px solid var(--green);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-family: 'Press Start 2P', monospace;
+      }
+
+      /* ========== TAB 2: FOR WHO ========== */
+
+      .checklist {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
       .checklist li {
-        padding: 10px 12px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 12px 16px;
+        background: rgba(20, 255, 0, 0.04);
+        border: 1px solid rgba(20, 255, 0, 0.07);
+        border-radius: 6px;
       }
-    }
 
-    @media (max-width: 380px) {
-      .tab-btn {
-        font-size: 11px;
-        padding: 8px 6px 6px;
+      .check-marker {
+        font-family: 'VT323', monospace;
+        font-size: 20px;
+        color: var(--green);
+        flex-shrink: 0;
+        line-height: 1.5;
+        text-shadow: 0 0 8px var(--green-glow);
       }
 
-      .tab-btn::before { content: ''; }
-      .tab-btn::after { content: ''; }
+      .checklist li span {
+        font-size: 15px;
+        line-height: 1.7;
+      }
 
-      .frame-label { display: none; }
-    }
+      .terminal-prompt {
+        font-family: 'VT323', monospace;
+        font-size: 18px;
+        color: var(--green-dim);
+        margin-top: 20px;
+        direction: rtl;
+        text-align: right;
+      }
 
-    /* ========== TAB SWITCH AUDIO (visual click feedback) ========== */
+      .terminal-prompt .cursor {
+        display: inline-block;
+        width: 8px;
+        height: 16px;
+        background: var(--green);
+        margin-left: 4px;
+        animation: blink 1s step-end infinite;
+        vertical-align: text-bottom;
+      }
 
-    @keyframes tabClick {
-      0% { transform: scale(0.96); }
-      100% { transform: scale(1); }
-    }
-
-    .tab-btn:active {
-      animation: tabClick 0.1s ease-out;
-    }
-  </style>
-</head>
-<body>
-
-<div class="pipboy-device">
-  <div class="pipboy-frame">
-    <span class="frame-label">ROBCO INDUSTRIES (TM) TERMLINK</span>
-    <div class="screw-bl"></div>
-    <div class="screw-br"></div>
-
-    <div class="crt-screen">
-      <div class="crt-glow"></div>
-
-      <div class="screen-content">
-
-        <!-- Top Status Bar -->
-        <div class="top-bar">
-          <span class="model-name">PIP-BOY 3000 MK IV</span>
-          <div class="status-group">
-            <span id="datetime"></span>
-            <div class="signal-bars">
-              <span></span><span></span><span></span><span class="off"></span>
-            </div>
-            <div class="battery">
-              <div class="battery-body"><div class="battery-fill"></div></div>
-              <div class="battery-tip"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab Navigation -->
-        <nav class="tab-nav" role="tablist">
-          <button class="tab-btn active" role="tab" data-tab="about" aria-selected="true">מי אני</button>
-          <button class="tab-btn" role="tab" data-tab="forwho" aria-selected="false">למי זה</button>
-          <button class="tab-btn" role="tab" data-tab="experience" aria-selected="false">ניסיון</button>
-          <button class="tab-btn" role="tab" data-tab="session" aria-selected="false">השיחה</button>
-          <button class="tab-btn" role="tab" data-tab="book" aria-selected="false">הזמנה</button>
-        </nav>
-
-        <!-- Tab Panels -->
-        <div class="tab-panels">
-
-          <!-- TAB 1: About -->
-          <div class="tab-panel active" id="panel-about" role="tabpanel">
-            <div class="about-layout">
-              <div class="headshot-container">
-                <img src="BarakAlmog Headshot.png" alt="ברק אלמוג">
-              </div>
-              <div class="about-text">
-                <div class="subtitle">CONSULTATION SESSION</div>
-                <h1>ברק אלמוג</h1>
-                <p class="role">יועץ אוטומציה ו-AI לעסקים</p>
-                <hr class="divider">
-                <p class="headline">שיחת ייעוץ 1 על 1</p>
-                <p class="description">
-                  90 דקות של בהירות — נבין ביחד איפה העסק שלך מבזבז זמן, ואיך AI ואוטומציה יכולים לשנות את זה
-                </p>
-                <div class="vault-badge">
-                  <div class="vault-icon">7</div>
-                  VAULT 7 CERTIFIED
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- TAB 2: For Who -->
-          <div class="tab-panel" id="panel-forwho" role="tabpanel">
-            <h2>למי השיחה הזו מתאימה?</h2>
-            <ul class="checklist">
-              <li>
-                <span class="check-marker">[X]</span>
-                <span>יש לך תהליכים ידניים שחוזרים על עצמם — ואתה חושד שאפשר לעשות אותם חכם יותר</span>
-              </li>
-              <li>
-                <span class="check-marker">[X]</span>
-                <span>אתה שומע על AI ואוטומציה ורוצה להבין מה רלוונטי בפועל לעסק שלך</span>
-              </li>
-              <li>
-                <span class="check-marker">[X]</span>
-                <span>אתה צריך מישהו שיסתכל על התמונה הגדולה ויגיד לך מאיפה להתחיל</span>
-              </li>
-              <li>
-                <span class="check-marker">[X]</span>
-                <span>אתה רוצה תוכנית מעשית — לא הרצאה תיאורטית</span>
-              </li>
-            </ul>
-            <div class="terminal-prompt">
-              > MATCH FOUND. INITIATING CONSULTATION PROTOCOL...<span class="cursor"></span>
-            </div>
-          </div>
-
-          <!-- TAB 3: Experience (Inventory) -->
-          <div class="tab-panel" id="panel-experience" role="tabpanel">
-            <div class="section-label">ניסיון ופרויקטים ///</div>
-            <div class="inventory-list">
-              <div class="inv-item">
-                <div class="inv-item-header">
-                  <div class="inv-icon">&#9670;</div>
-                  <h3>סוכני AI עסקיים</h3>
-                </div>
-                <p>סוכנים שמבצעים משימות באופן עצמאי: ניהול CRM, מעקב לקוחות, דוחות וקליטת מידע</p>
-              </div>
-              <div class="inv-item">
-                <div class="inv-item-header">
-                  <div class="inv-icon">&#9670;</div>
-                  <h3>אפליקציות ודשבורדים</h3>
-                </div>
-                <p>פיתוח Web Apps מותאמים לניהול תהליכים, מעקב ביצועים ותצוגת נתונים בזמן אמת</p>
-              </div>
-              <div class="inv-item">
-                <div class="inv-item-header">
-                  <div class="inv-icon">&#9670;</div>
-                  <h3>אוטומציה של תהליכי עבודה</h3>
-                </div>
-                <p>מיפוי SOPs, חיבור מערכות ובניית תהליכים שרצים לבד מקצה לקצה</p>
-              </div>
-              <div class="inv-item">
-                <div class="inv-item-header">
-                  <div class="inv-icon">&#9670;</div>
-                  <h3>כלים ו-Skills מבוססי AI</h3>
-                </div>
-                <p>פיתוח MCPs, סקילים וכלים שמרחיבים את היכולות של AI Agents בתוך העסק</p>
-              </div>
-            </div>
-            <div class="tech-tags">
-              <span class="tech-tag">AI Agents</span>
-              <span class="tech-tag">Claude AI</span>
-              <span class="tech-tag">MCP</span>
-              <span class="tech-tag">Node.js</span>
-              <span class="tech-tag">React</span>
-              <span class="tech-tag">Full Stack</span>
-              <span class="tech-tag">SaaS</span>
-              <span class="tech-tag">Airtable</span>
-              <span class="tech-tag">Business Automation</span>
-            </div>
-          </div>
-
-          <!-- TAB 4: The Session -->
-          <div class="tab-panel" id="panel-session" role="tabpanel">
-            <div class="steps-section">
-              <div class="section-label">מה קורה בשיחה — 90 דקות ///</div>
-              <div class="step">
-                <div class="step-num">01</div>
-                <div class="step-content">
-                  <h3>מבינים את המצב</h3>
-                  <p>תספר לי על העסק, על התהליכים שלך, ואיפה כואב. אני שואל שאלות ומזהה את הבעיות האמיתיות.</p>
-                </div>
-              </div>
-              <div class="step">
-                <div class="step-num">02</div>
-                <div class="step-content">
-                  <h3>ממפים את ההזדמנויות</h3>
-                  <p>ביחד נעבור על התהליכים ונראה איפה אוטומציה ו-AI יכולים לחסוך לך הכי הרבה זמן וכסף.</p>
-                </div>
-              </div>
-              <div class="step">
-                <div class="step-num">03</div>
-                <div class="step-content">
-                  <h3>בונים תוכנית פעולה</h3>
-                  <p>תצא מהשיחה עם רשימה מסודרת של מה לעשות, באיזה סדר, ואילו כלים להשתמש.</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="deliverables-section">
-              <div class="section-label">מה מקבלים ///</div>
-              <div class="deliverable">
-                <span class="deliverable-icon">></span>
-                <div>
-                  <h3>סיכום השיחה</h3>
-                  <p>תקציר כתוב של הנקודות העיקריות שעלו, הבעיות שזיהינו וההזדמנויות.</p>
-                </div>
-              </div>
-              <div class="deliverable">
-                <span class="deliverable-icon">></span>
-                <div>
-                  <h3>המלצות + צעדים הבאים</h3>
-                  <p>מה לעשות, באיזה סדר, ואיך — תוכנית מעשית שמותאמת לעסק שלך.</p>
-                </div>
-              </div>
-              <div class="deliverable">
-                <span class="deliverable-icon">></span>
-                <div>
-                  <h3>כלים ומשאבים</h3>
-                  <p>קישורים לכלים, דוגמאות ומשאבים רלוונטיים שעלו בשיחה.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- TAB 5: Book -->
-          <div class="tab-panel" id="panel-book" role="tabpanel">
-            <div class="book-section">
-              <div class="section-label" style="align-self: stretch;">קביעת שיחה ///</div>
-              <div class="price-display">100$ ל- 90 דקות</div>
-              <div class="session-details">
-                <span>ZOOM</span>
-                <span class="dot"></span>
-                <span>1-ON-1</span>
-              </div>
-              <a href="#FILLOUT_FORM_LINK" class="cta-button">
-                קבעו שיחת ייעוץ&nbsp; &#9664;
-              </a>
-              <p class="stripe-note">// התשלום מאובטח דרך Stripe</p>
-              <div class="legal-links">
-                <a href="/1on1/tos/" target="_blank">תנאי שירות</a>
-              </div>
-            </div>
-          </div>
-
-        </div><!-- /tab-panels -->
-
-        <!-- Bottom Status Bar -->
-        <div class="bottom-bar">
-          <div class="stats">
-            <div class="stat">LVL 99</div>
-            <div class="stat">HP <div class="hp-bar"><div class="hp-bar-fill"></div></div> 100/100</div>
-            <div class="stat">CAPS: 100</div>
-          </div>
-          <div class="copyright">&copy; 2026 ברק אלמוג &mdash; Sellerframe</div>
-        </div>
-
-      </div><!-- /screen-content -->
-
-      <!-- Radiation symbol (decorative) -->
-      <div class="radiation">
-        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="50" cy="50" r="12" fill="none" stroke="currentColor" stroke-width="3"/>
-          <path d="M50 38 L50 8 A42 42 0 0 1 86 62 L60 48" fill="currentColor"/>
-          <path d="M60 48 L86 62 A42 42 0 0 1 14 62 L40 48" fill="currentColor"/>
-          <path d="M40 48 L14 62 A42 42 0 0 1 50 8 L50 38" fill="currentColor"/>
-        </svg>
-      </div>
-
-    </div><!-- /crt-screen -->
-  </div><!-- /pipboy-frame -->
-</div>
-
-<script>
-  // Date display
-  (function() {
-    const el = document.getElementById('datetime');
-    function updateDate() {
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const year = now.getFullYear();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const mins = String(now.getMinutes()).padStart(2, '0');
-      el.textContent = month + '.' + day + '.' + year + ' ' + hours + ':' + mins;
-    }
-    updateDate();
-    setInterval(updateDate, 30000);
-  })();
-
-  // Tab switching with screen flash effect
-  (function() {
-    const tabs = document.querySelectorAll('.tab-btn');
-    const panels = document.querySelectorAll('.tab-panel');
-
-    // Create audio context for click sound
-    let audioCtx = null;
-
-    function playClick() {
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
         }
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
-        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
-        osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.06);
-      } catch(e) {
-        // Audio not supported — fail silently
-      }
-    }
-
-    function switchTab(targetTab) {
-      // Deactivate all
-      tabs.forEach(function(t) {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-      });
-      panels.forEach(function(p) {
-        p.classList.remove('active');
-        p.classList.remove('flash');
-      });
-
-      // Activate target
-      targetTab.classList.add('active');
-      targetTab.setAttribute('aria-selected', 'true');
-
-      const panelId = 'panel-' + targetTab.getAttribute('data-tab');
-      const panel = document.getElementById(panelId);
-      if (panel) {
-        // Small delay for flash effect
-        requestAnimationFrame(function() {
-          panel.classList.add('active');
-          panel.classList.add('flash');
-          // Remove flash class after animation
-          setTimeout(function() {
-            panel.classList.remove('flash');
-          }, 200);
-        });
+        50% {
+          opacity: 0;
+        }
       }
 
-      playClick();
-    }
+      /* ========== TAB 3: EXPERIENCE — INVENTORY ========== */
 
-    tabs.forEach(function(tab) {
-      tab.addEventListener('click', function() {
-        switchTab(tab);
-      });
-    });
-
-    // CTA button slow random aura pulse
-    (function() {
-      const btn = document.querySelector('.cta-button');
-      if (!btn) return;
-      function pulse() {
-        const spread1 = 20 + Math.random() * 30;
-        const spread2 = 45 + Math.random() * 40;
-        const opacity1 = 0.5 + Math.random() * 0.4;
-        const opacity2 = 0.15 + Math.random() * 0.2;
-        const duration = 1.2 + Math.random() * 2;
-        btn.style.transition = 'box-shadow ' + duration + 's ease-in-out';
-        btn.style.boxShadow = '0 0 ' + spread1 + 'px rgba(20,255,0,' + opacity1 + '), 0 0 ' + spread2 + 'px rgba(20,255,0,' + opacity2 + ')';
-        setTimeout(pulse, duration * 1000);
-      }
-      pulse();
-    })();
-
-    // Keyboard navigation
-    document.querySelector('.tab-nav').addEventListener('keydown', function(e) {
-      const current = document.querySelector('.tab-btn.active');
-      const tabArray = Array.from(tabs);
-      const idx = tabArray.indexOf(current);
-      let next = null;
-
-      // RTL: ArrowRight goes to previous, ArrowLeft goes to next
-      if (e.key === 'ArrowRight') {
-        next = tabArray[idx - 1] || tabArray[tabArray.length - 1];
-      } else if (e.key === 'ArrowLeft') {
-        next = tabArray[idx + 1] || tabArray[0];
+      .inventory-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
       }
 
-      if (next) {
-        e.preventDefault();
-        next.focus();
-        switchTab(next);
+      .inv-item {
+        border: 1px solid rgba(20, 255, 0, 0.15);
+        border-radius: 6px;
+        padding: 14px 16px;
+        background: rgba(20, 255, 0, 0.03);
+        position: relative;
+        overflow: hidden;
       }
-    });
-  })();
-</script>
 
-</body>
+      .inv-item::before {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--green);
+        opacity: 0.4;
+      }
+
+      .inv-item-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+
+      .inv-icon {
+        font-family: 'VT323', monospace;
+        font-size: 16px;
+        color: var(--green);
+        width: 24px;
+        height: 24px;
+        border: 1px solid var(--green-dim);
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        direction: ltr;
+      }
+
+      .inv-item h3 {
+        font-size: 15px;
+        margin-bottom: 0;
+      }
+
+      .inv-item p {
+        font-size: 13.5px;
+        color: rgba(20, 255, 0, 0.6);
+        line-height: 1.7;
+        margin-right: 34px;
+      }
+
+      .tech-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid var(--green-faint);
+        justify-content: center;
+      }
+
+      .tech-tag {
+        font-family: 'VT323', monospace;
+        font-size: 14px;
+        color: rgba(20, 255, 0, 0.7);
+        padding: 3px 10px;
+        border: 1px solid rgba(20, 255, 0, 0.2);
+        border-radius: 3px;
+        background: rgba(20, 255, 0, 0.04);
+        letter-spacing: 1px;
+        direction: ltr;
+      }
+
+      /* ========== TAB 4: THE SESSION ========== */
+
+      .steps-section,
+      .deliverables-section {
+        margin-bottom: 12px;
+      }
+
+      .step {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 6px;
+        padding: 8px 14px;
+        border-right: 2px solid var(--green-dim);
+      }
+
+      .step-num {
+        font-family: 'VT323', monospace;
+        font-size: 32px;
+        color: var(--green);
+        text-shadow: 0 0 12px var(--green-glow);
+        line-height: 1;
+        flex-shrink: 0;
+        width: 30px;
+        direction: ltr;
+        text-align: center;
+      }
+
+      .step-content h3 {
+        font-size: 16px;
+        margin-bottom: 4px;
+      }
+
+      .step-content p {
+        font-size: 14px;
+        color: rgba(20, 255, 0, 0.65);
+        line-height: 1.7;
+      }
+
+      .section-label {
+        font-family: 'VT323', monospace;
+        font-size: 18px;
+        color: var(--green);
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--green-faint);
+        direction: ltr;
+        text-align: right;
+      }
+
+      .deliverable {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 6px;
+        align-items: flex-start;
+      }
+
+      .deliverable-icon {
+        font-family: 'VT323', monospace;
+        font-size: 18px;
+        color: var(--green);
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .deliverable h3 {
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      .deliverable p {
+        font-size: 13.5px;
+        color: rgba(20, 255, 0, 0.6);
+        line-height: 1.65;
+      }
+
+      /* ========== TAB 5: BOOK ========== */
+
+      .book-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        text-align: center;
+        gap: 8px;
+      }
+
+      .price-display {
+        font-family: 'VT323', monospace;
+        font-size: 42px;
+        color: var(--green);
+        text-shadow:
+          0 0 20px var(--green-glow),
+          0 0 40px rgba(20, 255, 0, 0.2);
+        letter-spacing: 2px;
+        direction: rtl;
+        line-height: 1;
+      }
+
+      .session-details {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        margin: 8px 0 24px;
+        font-family: 'VT323', monospace;
+        font-size: 18px;
+        color: var(--green-dim);
+        letter-spacing: 1px;
+        direction: ltr;
+      }
+
+      .session-details span {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .session-details .dot {
+        width: 4px;
+        height: 4px;
+        background: var(--green-dim);
+        border-radius: 50%;
+      }
+
+      .cta-button {
+        font-family: 'Heebo', sans-serif;
+        font-weight: 700;
+        font-size: 18px;
+        color: var(--bg);
+        background: var(--green);
+        border: none;
+        padding: 14px 48px;
+        border-radius: 6px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        text-shadow: none;
+        box-shadow:
+          0 0 20px var(--green-glow),
+          0 0 40px rgba(20, 255, 0, 0.15);
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .cta-button:hover {
+        background: var(--green-bright);
+        box-shadow:
+          0 0 30px var(--green-glow),
+          0 0 60px rgba(20, 255, 0, 0.25);
+      }
+
+      .cta-button:active {
+        transform: scale(0.98);
+      }
+
+      /* Button scanline effect */
+      .cta-button::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.08) 2px,
+          rgba(0, 0, 0, 0.08) 4px
+        );
+        pointer-events: none;
+      }
+
+      .stripe-note {
+        font-family: 'VT323', monospace;
+        font-size: 15px;
+        color: var(--green-dim);
+        margin-top: 16px;
+        letter-spacing: 1px;
+      }
+
+      .legal-links {
+        margin-top: 12px;
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+      }
+
+      .legal-links a {
+        font-family: 'Heebo', sans-serif;
+        font-size: 13px;
+        color: rgba(20, 255, 0, 0.5);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        letter-spacing: 0.5px;
+        transition:
+          color 0.15s,
+          text-shadow 0.15s;
+      }
+
+      .legal-links a:hover {
+        color: var(--green);
+        text-shadow: 0 0 6px var(--green-glow);
+      }
+
+      /* ========== BOTTOM STATUS BAR ========== */
+
+      .bottom-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 16px;
+        border-top: 1px solid var(--green-faint);
+        font-family: 'VT323', monospace;
+        font-size: 13px;
+        color: var(--green-dim);
+        flex-shrink: 0;
+        direction: ltr;
+      }
+
+      .bottom-bar .stats {
+        display: flex;
+        gap: 14px;
+      }
+
+      .bottom-bar .stat {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .hp-bar {
+        width: 50px;
+        height: 6px;
+        background: rgba(20, 255, 0, 0.15);
+        border-radius: 2px;
+        overflow: hidden;
+        display: inline-block;
+        vertical-align: middle;
+      }
+
+      .hp-bar-fill {
+        height: 100%;
+        width: 100%;
+        background: var(--green);
+        border-radius: 2px;
+      }
+
+      .bottom-bar .copyright {
+        direction: rtl;
+        font-size: 12px;
+      }
+
+      /* ========== RADIATION SYMBOL (decorative) ========== */
+
+      .radiation {
+        position: absolute;
+        bottom: 14px;
+        left: 14px;
+        width: 28px;
+        height: 28px;
+        opacity: 0.08;
+        z-index: 1;
+      }
+
+      .radiation svg {
+        width: 100%;
+        height: 100%;
+        fill: var(--green);
+      }
+
+      /* ========== MOBILE RESPONSIVE ========== */
+
+      @media (max-width: 640px) {
+        html,
+        body {
+          overflow: auto;
+          height: auto;
+        }
+
+        body {
+          padding: 8px;
+          align-items: flex-start;
+        }
+
+        .pipboy-device {
+          width: 100%;
+          max-width: 100%;
+          height: auto;
+          max-height: none;
+          min-height: 100vh;
+        }
+
+        .pipboy-frame {
+          border-radius: 16px;
+          padding: 8px 6px 6px;
+        }
+
+        .crt-screen {
+          border-radius: 10px;
+        }
+
+        .top-bar {
+          padding: 6px 10px 3px;
+          font-size: 12px;
+        }
+
+        .top-bar .model-name {
+          font-size: 13px;
+        }
+
+        .tab-nav {
+          padding: 0 6px;
+        }
+
+        .tab-btn {
+          font-size: 12px;
+          padding: 8px 8px 6px;
+        }
+
+        .tab-panels {
+          position: relative;
+          min-height: 65vh;
+        }
+
+        .tab-panel {
+          position: absolute;
+          padding: 16px 14px;
+        }
+
+        .about-layout {
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+
+        .headshot-container {
+          width: 100px;
+          height: 100px;
+        }
+
+        .about-text .subtitle,
+        .about-text .role,
+        .about-text .headline,
+        .about-text .description {
+          text-align: center;
+        }
+
+        .about-text .label {
+          text-align: center;
+        }
+
+        h1 {
+          font-size: 22px;
+        }
+        h2 {
+          font-size: 18px;
+        }
+
+        .price-display {
+          font-size: 48px;
+        }
+
+        .session-details {
+          flex-direction: column;
+          gap: 4px;
+          align-items: center;
+        }
+
+        .session-details .dot {
+          display: none;
+        }
+
+        .cta-button {
+          padding: 12px 36px;
+          font-size: 16px;
+        }
+
+        .bottom-bar {
+          flex-direction: column;
+          gap: 4px;
+          padding: 8px 10px;
+          text-align: center;
+        }
+
+        .vault-badge {
+          margin: 12px auto 0;
+        }
+
+        .inv-item p {
+          margin-right: 0;
+        }
+
+        .step {
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .step-num {
+          text-align: right;
+        }
+
+        .checklist li {
+          padding: 10px 12px;
+        }
+      }
+
+      @media (max-width: 380px) {
+        .tab-btn {
+          font-size: 11px;
+          padding: 8px 6px 6px;
+        }
+
+        .tab-btn::before {
+          content: '';
+        }
+        .tab-btn::after {
+          content: '';
+        }
+
+        .frame-label {
+          display: none;
+        }
+      }
+
+      /* ========== TAB SWITCH AUDIO (visual click feedback) ========== */
+
+      @keyframes tabClick {
+        0% {
+          transform: scale(0.96);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .tab-btn:active {
+        animation: tabClick 0.1s ease-out;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pipboy-device">
+      <div class="pipboy-frame">
+        <span class="frame-label">ROBCO INDUSTRIES (TM) TERMLINK</span>
+        <div class="screw-bl"></div>
+        <div class="screw-br"></div>
+
+        <div class="crt-screen">
+          <div class="crt-glow"></div>
+
+          <div class="screen-content">
+            <!-- Top Status Bar -->
+            <div class="top-bar">
+              <span class="model-name">PIP-BOY 3000 MK IV</span>
+              <div class="status-group">
+                <span id="datetime"></span>
+                <div class="signal-bars">
+                  <span></span><span></span><span></span><span class="off"></span>
+                </div>
+                <div class="battery">
+                  <div class="battery-body"><div class="battery-fill"></div></div>
+                  <div class="battery-tip"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <nav class="tab-nav" role="tablist">
+              <button
+                class="tab-btn active"
+                role="tab"
+                data-tab="about"
+                aria-selected="true"
+              >
+                מי אני
+              </button>
+              <button class="tab-btn" role="tab" data-tab="forwho" aria-selected="false">
+                למי זה
+              </button>
+              <button
+                class="tab-btn"
+                role="tab"
+                data-tab="experience"
+                aria-selected="false"
+              >
+                ניסיון
+              </button>
+              <button class="tab-btn" role="tab" data-tab="session" aria-selected="false">
+                השיחה
+              </button>
+              <button class="tab-btn" role="tab" data-tab="book" aria-selected="false">
+                הזמנה
+              </button>
+            </nav>
+
+            <!-- Tab Panels -->
+            <div class="tab-panels">
+              <!-- TAB 1: About -->
+              <div class="tab-panel active" id="panel-about" role="tabpanel">
+                <div class="about-layout">
+                  <div class="headshot-container">
+                    <img src="BarakAlmog Headshot.png" alt="ברק אלמוג" />
+                  </div>
+                  <div class="about-text">
+                    <div class="subtitle">CONSULTATION SESSION</div>
+                    <h1>ברק אלמוג</h1>
+                    <p class="role">יועץ אוטומציה ו-AI לעסקים</p>
+                    <hr class="divider" />
+                    <p class="headline">שיחת ייעוץ 1 על 1</p>
+                    <p class="description">
+                      90 דקות של בהירות — נבין ביחד איפה העסק שלך מבזבז זמן, ואיך AI
+                      ואוטומציה יכולים לשנות את זה
+                    </p>
+                    <div class="vault-badge">
+                      <div class="vault-icon">7</div>
+                      VAULT 7 CERTIFIED
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TAB 2: For Who -->
+              <div class="tab-panel" id="panel-forwho" role="tabpanel">
+                <h2>למי השיחה הזו מתאימה?</h2>
+                <ul class="checklist">
+                  <li>
+                    <span class="check-marker">[X]</span>
+                    <span
+                      >יש לך תהליכים ידניים שחוזרים על עצמם — ואתה חושד שאפשר לעשות אותם
+                      חכם יותר</span
+                    >
+                  </li>
+                  <li>
+                    <span class="check-marker">[X]</span>
+                    <span
+                      >אתה שומע על AI ואוטומציה ורוצה להבין מה רלוונטי בפועל לעסק
+                      שלך</span
+                    >
+                  </li>
+                  <li>
+                    <span class="check-marker">[X]</span>
+                    <span
+                      >אתה צריך מישהו שיסתכל על התמונה הגדולה ויגיד לך מאיפה להתחיל</span
+                    >
+                  </li>
+                  <li>
+                    <span class="check-marker">[X]</span>
+                    <span>אתה רוצה תוכנית מעשית — לא הרצאה תיאורטית</span>
+                  </li>
+                </ul>
+                <div class="terminal-prompt">
+                  > MATCH FOUND. INITIATING CONSULTATION PROTOCOL...<span
+                    class="cursor"
+                  ></span>
+                </div>
+              </div>
+
+              <!-- TAB 3: Experience (Inventory) -->
+              <div class="tab-panel" id="panel-experience" role="tabpanel">
+                <div class="section-label">ניסיון ופרויקטים ///</div>
+                <div class="inventory-list">
+                  <div class="inv-item">
+                    <div class="inv-item-header">
+                      <div class="inv-icon">&#9670;</div>
+                      <h3>סוכני AI עסקיים</h3>
+                    </div>
+                    <p>
+                      סוכנים שמבצעים משימות באופן עצמאי: ניהול CRM, מעקב לקוחות, דוחות
+                      וקליטת מידע
+                    </p>
+                  </div>
+                  <div class="inv-item">
+                    <div class="inv-item-header">
+                      <div class="inv-icon">&#9670;</div>
+                      <h3>אפליקציות ודשבורדים</h3>
+                    </div>
+                    <p>
+                      פיתוח Web Apps מותאמים לניהול תהליכים, מעקב ביצועים ותצוגת נתונים
+                      בזמן אמת
+                    </p>
+                  </div>
+                  <div class="inv-item">
+                    <div class="inv-item-header">
+                      <div class="inv-icon">&#9670;</div>
+                      <h3>אוטומציה של תהליכי עבודה</h3>
+                    </div>
+                    <p>מיפוי SOPs, חיבור מערכות ובניית תהליכים שרצים לבד מקצה לקצה</p>
+                  </div>
+                  <div class="inv-item">
+                    <div class="inv-item-header">
+                      <div class="inv-icon">&#9670;</div>
+                      <h3>כלים ו-Skills מבוססי AI</h3>
+                    </div>
+                    <p>
+                      פיתוח MCPs, סקילים וכלים שמרחיבים את היכולות של AI Agents בתוך העסק
+                    </p>
+                  </div>
+                </div>
+                <div class="tech-tags">
+                  <span class="tech-tag">AI Agents</span>
+                  <span class="tech-tag">Claude AI</span>
+                  <span class="tech-tag">MCP</span>
+                  <span class="tech-tag">Node.js</span>
+                  <span class="tech-tag">React</span>
+                  <span class="tech-tag">Full Stack</span>
+                  <span class="tech-tag">SaaS</span>
+                  <span class="tech-tag">Airtable</span>
+                  <span class="tech-tag">Business Automation</span>
+                </div>
+              </div>
+
+              <!-- TAB 4: The Session -->
+              <div class="tab-panel" id="panel-session" role="tabpanel">
+                <div class="steps-section">
+                  <div class="section-label">מה קורה בשיחה — 90 דקות ///</div>
+                  <div class="step">
+                    <div class="step-num">01</div>
+                    <div class="step-content">
+                      <h3>מבינים את המצב</h3>
+                      <p>
+                        תספר לי על העסק, על התהליכים שלך, ואיפה כואב. אני שואל שאלות ומזהה
+                        את הבעיות האמיתיות.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-num">02</div>
+                    <div class="step-content">
+                      <h3>ממפים את ההזדמנויות</h3>
+                      <p>
+                        ביחד נעבור על התהליכים ונראה איפה אוטומציה ו-AI יכולים לחסוך לך
+                        הכי הרבה זמן וכסף.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-num">03</div>
+                    <div class="step-content">
+                      <h3>בונים תוכנית פעולה</h3>
+                      <p>
+                        תצא מהשיחה עם רשימה מסודרת של מה לעשות, באיזה סדר, ואילו כלים
+                        להשתמש.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="deliverables-section">
+                  <div class="section-label">מה מקבלים ///</div>
+                  <div class="deliverable">
+                    <span class="deliverable-icon">></span>
+                    <div>
+                      <h3>סיכום השיחה</h3>
+                      <p>
+                        תקציר כתוב של הנקודות העיקריות שעלו, הבעיות שזיהינו וההזדמנויות.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="deliverable">
+                    <span class="deliverable-icon">></span>
+                    <div>
+                      <h3>המלצות + צעדים הבאים</h3>
+                      <p>מה לעשות, באיזה סדר, ואיך — תוכנית מעשית שמותאמת לעסק שלך.</p>
+                    </div>
+                  </div>
+                  <div class="deliverable">
+                    <span class="deliverable-icon">></span>
+                    <div>
+                      <h3>כלים ומשאבים</h3>
+                      <p>קישורים לכלים, דוגמאות ומשאבים רלוונטיים שעלו בשיחה.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TAB 5: Book -->
+              <div class="tab-panel" id="panel-book" role="tabpanel">
+                <div class="book-section">
+                  <div class="section-label" style="align-self: stretch">
+                    קביעת שיחה ///
+                  </div>
+                  <div class="price-display">100$ ל- 90 דקות</div>
+                  <div class="session-details">
+                    <span>ZOOM</span>
+                    <span class="dot"></span>
+                    <span>1-ON-1</span>
+                  </div>
+                  <a
+                    href="https://sellerframe.fillout.com/t/aKDdHLu7BLus"
+                    class="cta-button"
+                  >
+                    קבעו שיחת ייעוץ&nbsp; &#9664;
+                  </a>
+                  <p class="stripe-note">// התשלום מאובטח דרך Stripe</p>
+                  <div class="legal-links">
+                    <a href="/1on1/tos/" target="_blank">תנאי שירות</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- /tab-panels -->
+
+            <!-- Bottom Status Bar -->
+            <div class="bottom-bar">
+              <div class="stats">
+                <div class="stat">LVL 99</div>
+                <div class="stat">
+                  HP
+                  <div class="hp-bar"><div class="hp-bar-fill"></div></div>
+                  100/100
+                </div>
+                <div class="stat">CAPS: 100</div>
+              </div>
+              <div class="copyright">&copy; 2026 ברק אלמוג &mdash; Sellerframe</div>
+            </div>
+          </div>
+          <!-- /screen-content -->
+
+          <!-- Radiation symbol (decorative) -->
+          <div class="radiation">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <circle
+                cx="50"
+                cy="50"
+                r="12"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+              />
+              <path d="M50 38 L50 8 A42 42 0 0 1 86 62 L60 48" fill="currentColor" />
+              <path d="M60 48 L86 62 A42 42 0 0 1 14 62 L40 48" fill="currentColor" />
+              <path d="M40 48 L14 62 A42 42 0 0 1 50 8 L50 38" fill="currentColor" />
+            </svg>
+          </div>
+        </div>
+        <!-- /crt-screen -->
+      </div>
+      <!-- /pipboy-frame -->
+    </div>
+
+    <script>
+      // Date display
+      ;(function () {
+        const el = document.getElementById('datetime')
+        function updateDate() {
+          const now = new Date()
+          const month = String(now.getMonth() + 1).padStart(2, '0')
+          const day = String(now.getDate()).padStart(2, '0')
+          const year = now.getFullYear()
+          const hours = String(now.getHours()).padStart(2, '0')
+          const mins = String(now.getMinutes()).padStart(2, '0')
+          el.textContent = month + '.' + day + '.' + year + ' ' + hours + ':' + mins
+        }
+        updateDate()
+        setInterval(updateDate, 30000)
+      })()
+
+      // Tab switching with screen flash effect
+      ;(function () {
+        const tabs = document.querySelectorAll('.tab-btn')
+        const panels = document.querySelectorAll('.tab-panel')
+
+        // Create audio context for click sound
+        let audioCtx = null
+
+        function playClick() {
+          try {
+            if (!audioCtx) {
+              audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+            }
+            const osc = audioCtx.createOscillator()
+            const gain = audioCtx.createGain()
+            osc.connect(gain)
+            gain.connect(audioCtx.destination)
+            osc.type = 'square'
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime)
+            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05)
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime)
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06)
+            osc.start(audioCtx.currentTime)
+            osc.stop(audioCtx.currentTime + 0.06)
+          } catch (e) {
+            // Audio not supported — fail silently
+          }
+        }
+
+        function switchTab(targetTab) {
+          // Deactivate all
+          tabs.forEach(function (t) {
+            t.classList.remove('active')
+            t.setAttribute('aria-selected', 'false')
+          })
+          panels.forEach(function (p) {
+            p.classList.remove('active')
+            p.classList.remove('flash')
+          })
+
+          // Activate target
+          targetTab.classList.add('active')
+          targetTab.setAttribute('aria-selected', 'true')
+
+          const panelId = 'panel-' + targetTab.getAttribute('data-tab')
+          const panel = document.getElementById(panelId)
+          if (panel) {
+            // Small delay for flash effect
+            requestAnimationFrame(function () {
+              panel.classList.add('active')
+              panel.classList.add('flash')
+              // Remove flash class after animation
+              setTimeout(function () {
+                panel.classList.remove('flash')
+              }, 200)
+            })
+          }
+
+          playClick()
+        }
+
+        tabs.forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            switchTab(tab)
+          })
+        })
+
+        // CTA button slow random aura pulse
+        ;(function () {
+          const btn = document.querySelector('.cta-button')
+          if (!btn) return
+          function pulse() {
+            const spread1 = 20 + Math.random() * 30
+            const spread2 = 45 + Math.random() * 40
+            const opacity1 = 0.5 + Math.random() * 0.4
+            const opacity2 = 0.15 + Math.random() * 0.2
+            const duration = 1.2 + Math.random() * 2
+            btn.style.transition = 'box-shadow ' + duration + 's ease-in-out'
+            btn.style.boxShadow =
+              '0 0 ' +
+              spread1 +
+              'px rgba(20,255,0,' +
+              opacity1 +
+              '), 0 0 ' +
+              spread2 +
+              'px rgba(20,255,0,' +
+              opacity2 +
+              ')'
+            setTimeout(pulse, duration * 1000)
+          }
+          pulse()
+        })()
+
+        // Keyboard navigation
+        document.querySelector('.tab-nav').addEventListener('keydown', function (e) {
+          const current = document.querySelector('.tab-btn.active')
+          const tabArray = Array.from(tabs)
+          const idx = tabArray.indexOf(current)
+          let next = null
+
+          // RTL: ArrowRight goes to previous, ArrowLeft goes to next
+          if (e.key === 'ArrowRight') {
+            next = tabArray[idx - 1] || tabArray[tabArray.length - 1]
+          } else if (e.key === 'ArrowLeft') {
+            next = tabArray[idx + 1] || tabArray[0]
+          }
+
+          if (next) {
+            e.preventDefault()
+            next.focus()
+            switchTab(next)
+          }
+        })
+      })()
+    </script>
+  </body>
 </html>
