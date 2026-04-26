@@ -1,0 +1,2624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Ants War Kit v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #e8dfc8;
+    --bg2: #d6cba8;
+    --panel: #ebe5d6;
+    --ink: #1a1814;
+    --ink-2: #4a4538;
+    --rule: #c9c0a9;
+    --rule-2: #a89e84;
+    --grid: rgba(26, 24, 20, 0.06);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--panel);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ============ LEFT: Simulation column ============ */
+  .stage {
+    position: relative;
+    background: var(--panel);
+    border-right: 1px solid var(--rule-2);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .stage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 10px;
+    border-bottom: 1px dashed var(--rule);
+    flex-shrink: 0;
+  }
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .brand-mark {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-2);
+  }
+  .stage-meta {
+    display: flex;
+    gap: 18px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-2);
+  }
+  .stage-meta b {
+    color: var(--ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    margin-left: 6px;
+  }
+
+  .canvas-wrap {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+    padding: 14px 18px 14px;
+  }
+  .canvas-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--rule-2);
+    background: var(--bg);
+    overflow: hidden;
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.08);
+  }
+  canvas#sim { display: block; width: 100%; height: 100%; background: transparent; }
+
+  .corner {
+    position: absolute;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ink-2);
+    pointer-events: none;
+    background: var(--panel);
+    padding: 0 6px;
+  }
+  .corner.tl { top: -7px; left: 12px; }
+  .corner.tr { top: -7px; right: 12px; }
+  .corner.bl { bottom: -7px; left: 12px; }
+  .corner.br { bottom: -7px; right: 12px; }
+
+  .status {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-top: 1px dashed var(--rule);
+    flex-shrink: 0;
+    background: var(--panel);
+  }
+  .stat {
+    padding: 10px 12px;
+    border-right: 1px dashed var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .stat:last-child { border-right: none; }
+  .stat .label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ink-2);
+  }
+  .stat .value {
+    font-size: 17px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .stat .value.red { color: oklch(55% 0.19 25); }
+  .stat .value.blue { color: oklch(50% 0.15 245); }
+  .stat .value.beetle { color: oklch(35% 0.10 140); }
+
+  /* ============ RIGHT: Tweaks panel ============ */
+  .tweaks {
+    background: var(--panel);
+    border-left: 1px solid var(--rule-2);
+    overflow-y: auto;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .tweaks-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--rule-2);
+    position: sticky;
+    top: 0;
+    background: var(--panel);
+    z-index: 5;
+  }
+  .tweaks-header h2 {
+    margin: 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 600;
+  }
+  .tweaks-header .sub {
+    font-size: 10px;
+    color: var(--ink-2);
+    margin-top: 4px;
+  }
+  .tweaks-body { padding: 4px 0 40px; }
+
+  .controls-row {
+    display: flex;
+    border-bottom: 1px solid var(--rule-2);
+  }
+  .ctrl-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--rule-2);
+    padding: 10px 8px;
+    font-family: inherit;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .ctrl-btn:last-child { border-right: none; }
+  .ctrl-btn:hover { background: rgba(26,24,20,0.06); }
+  .ctrl-btn.active { background: var(--ink); color: var(--panel); }
+  .ctrl-btn.danger:hover { color: oklch(55% 0.19 25); }
+
+  .section {
+    border-bottom: 1px solid var(--rule-2);
+    padding: 10px 14px 14px;
+  }
+  .section h3 {
+    margin: 4px 0 10px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--ink-2);
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section h3 .num {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--rule-2);
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 11px;
+  }
+
+  .field { margin-bottom: 10px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+    gap: 8px;
+  }
+  .field-label { font-size: 10px; }
+  .field-value {
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-2);
+    background: var(--bg);
+    padding: 1px 6px;
+    border: 1px solid var(--rule);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 14px; background: transparent; cursor: pointer; margin: 0;
+  }
+  input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: var(--rule-2); }
+  input[type="range"]::-moz-range-track { height: 2px; background: var(--rule-2); }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 10px; height: 14px; background: var(--ink); border-radius: 0; margin-top: -6px;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 10px; height: 14px; background: var(--ink); border: none; border-radius: 0;
+  }
+
+  .seg {
+    display: flex;
+    border: 1px solid var(--rule-2);
+    background: var(--bg);
+  }
+  .seg button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--rule-2);
+    padding: 6px 4px;
+    font-family: inherit;
+    font-size: 10px;
+    color: var(--ink-2);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button.on { background: var(--ink); color: var(--bg); }
+  .seg button:hover:not(.on) { background: rgba(26,24,20,0.04); }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle .switch {
+    width: 28px; height: 14px;
+    border: 1px solid var(--rule-2);
+    background: var(--bg);
+    position: relative;
+  }
+  .toggle .switch::after {
+    content: '';
+    position: absolute;
+    top: 1px; left: 1px;
+    width: 10px; height: 10px;
+    background: var(--ink-2);
+    transition: transform 0.15s, background 0.15s;
+  }
+  .toggle.on .switch { background: var(--ink); }
+  .toggle.on .switch::after { transform: translateX(14px); background: var(--bg); }
+
+  .ratio-bar {
+    height: 8px;
+    display: flex;
+    border: 1px solid var(--rule-2);
+    margin-top: 4px;
+  }
+  .ratio-bar .w { background: var(--ink-2); }
+  .ratio-bar .f { background: var(--ink); }
+
+  .footer-note {
+    padding: 12px 14px;
+    font-size: 10px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .footer-note kbd {
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    padding: 1px 5px;
+    font-family: inherit;
+    font-size: 9px;
+  }
+
+  .legend {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    display: flex;
+    gap: 14px;
+    background: rgba(232, 223, 200, 0.85);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--rule-2);
+    padding: 6px 10px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-2);
+    pointer-events: none;
+  }
+  .legend .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    margin-right: 5px;
+    transform: translateY(1px);
+  }
+  .legend .dot.red { background: oklch(55% 0.19 25); }
+  .legend .dot.blue { background: oklch(50% 0.15 245); }
+  .legend .dot.food { background: oklch(60% 0.14 60); border-radius: 50%; }
+  .legend .dot.queen { background: oklch(78% 0.16 60); border-radius: 50%; }
+  .legend .dot.beetle { background: oklch(28% 0.08 140); border-radius: 2px; }
+
+  #sim:hover { cursor: crosshair; }
+
+  .toast {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 6px 10px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  .sparkline {
+    height: 40px;
+    width: 100%;
+    border: 1px solid var(--rule-2);
+    background: var(--bg);
+  }
+
+  .tweaks::-webkit-scrollbar { width: 8px; }
+  .tweaks::-webkit-scrollbar-track { background: var(--panel); }
+  .tweaks::-webkit-scrollbar-thumb { background: var(--rule-2); }
+
+  .paint-hint {
+    position: absolute;
+    top: 12px; left: 12px;
+    background: var(--ink);
+    color: var(--bg);
+    padding: 6px 10px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    display: none;
+  }
+  .paint-hint.show { display: block; }
+
+  .alert {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: oklch(40% 0.18 30);
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    border: 1px solid oklch(60% 0.18 30);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    font-weight: 600;
+  }
+  .alert.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <main class="stage">
+    <header class="stage-header">
+      <div class="brand">
+        <div class="brand-mark">Ants War Kit</div>
+        <div class="brand-sub">Formicidae Field Sim · v2 · Lifelike</div>
+      </div>
+      <div class="stage-meta">
+        <span>Tick<b id="m-tick">0</b></span>
+        <span>FPS<b id="m-fps">60</b></span>
+        <span>Pop<b id="m-pop">0</b></span>
+      </div>
+    </header>
+
+    <div class="canvas-wrap">
+      <div class="canvas-frame">
+        <span class="corner tl">Quadrant α</span>
+        <span class="corner tr">Field study</span>
+        <span class="corner bl">F: food · 1/2: ant · 3: beetle · O: rock · ESC: cancel</span>
+        <span class="corner br">live</span>
+        <canvas id="sim"></canvas>
+        <div class="paint-hint" id="paint-hint">Paint mode — click to drop. ESC to exit</div>
+        <div class="alert" id="alert">⚠ Beetle approaching</div>
+        <div class="legend">
+          <span><i class="dot red"></i>Red</span>
+          <span><i class="dot blue"></i>Blue</span>
+          <span><i class="dot food"></i>Food</span>
+          <span><i class="dot queen"></i>Queen</span>
+          <span><i class="dot beetle"></i>Beetle</span>
+        </div>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+
+    <div class="status">
+      <div class="stat"><span class="label">Red Pop.</span><span class="value red" id="s-red">0</span></div>
+      <div class="stat"><span class="label">Blue Pop.</span><span class="value blue" id="s-blue">0</span></div>
+      <div class="stat"><span class="label">Food</span><span class="value" id="s-food">0</span></div>
+      <div class="stat"><span class="label">Red Stash</span><span class="value red" id="s-red-stash">0</span></div>
+      <div class="stat"><span class="label">Blue Stash</span><span class="value blue" id="s-blue-stash">0</span></div>
+      <div class="stat"><span class="label">Beetles</span><span class="value beetle" id="s-beetles">0</span></div>
+      <div class="stat"><span class="label">Casualties</span><span class="value" id="s-deaths">0</span></div>
+    </div>
+  </main>
+
+  <aside class="tweaks">
+    <div class="tweaks-header">
+      <h2>Tweaks Console</h2>
+      <div class="sub">All controls live · changes apply instantly</div>
+    </div>
+
+    <div class="controls-row">
+      <button class="ctrl-btn" id="btn-play">▶ Play</button>
+      <button class="ctrl-btn" id="btn-step">Step</button>
+      <button class="ctrl-btn danger" id="btn-reset">Reset</button>
+    </div>
+
+    <div class="tweaks-body">
+
+      <div class="section">
+        <h3><span>Visual Style</span><span class="num">i.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Terrain</span></div>
+          <div class="seg" data-tweak="terrain">
+            <button data-v="sand" class="on">Sand</button>
+            <button data-v="dirt">Dirt</button>
+            <button data-v="moss">Moss</button>
+            <button data-v="night">Night</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Texture detail</span></div>
+          <div class="seg" data-tweak="texture">
+            <button data-v="off">Off</button>
+            <button data-v="low">Low</button>
+            <button data-v="high" class="on">High</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Trails</span><span class="field-value" id="v-trail">on</span></div>
+          <div class="toggle on" data-tweak="trails"><span>Show pheromone trails</span><span class="switch"></span></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Pheromone lifetime</span><span class="field-value" id="v-phlife">600</span></div>
+          <input type="range" min="120" max="1500" step="20" value="600" data-tweak="pheromoneLife" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Pheromone following</span><span class="field-value" id="v-phfol">0.90</span></div>
+          <input type="range" min="0" max="1.5" step="0.05" value="0.9" data-tweak="pheromoneFollow" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Forage sight (food detection)</span><span class="field-value" id="v-forager">18</span></div>
+          <input type="range" min="4" max="80" step="1" value="18" data-tweak="forageRadius" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Pheromone sense range</span><span class="field-value" id="v-senser">50</span></div>
+          <input type="range" min="10" max="200" step="5" value="50" data-tweak="senseRadius" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Show carrying</span><span class="field-value" id="v-carry">on</span></div>
+          <div class="toggle on" data-tweak="showCarry"><span>Highlight food carriers</span><span class="switch"></span></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Show queen aura</span><span class="field-value" id="v-aura">on</span></div>
+          <div class="toggle on" data-tweak="queenAura"><span>Pulsing aura around queens</span><span class="switch"></span></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Combat flash</span><span class="field-value" id="v-flash">on</span></div>
+          <div class="toggle on" data-tweak="combatFlash"><span>Flash on attack</span><span class="switch"></span></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Worker size</span><span class="field-value" id="v-size">1.0×</span></div>
+          <input type="range" min="0.5" max="2.5" step="0.1" value="1.0" data-tweak="antSize" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Warrior size</span><span class="field-value" id="v-wsize">1.7×</span></div>
+          <input type="range" min="1.0" max="3.5" step="0.1" value="1.7" data-tweak="warriorSize" />
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Colony Colors</span><span class="num">ii.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Red colony hue</span><span class="field-value" id="v-redhue">22°</span></div>
+          <input type="range" min="0" max="360" step="1" value="22" data-tweak="redHue" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Blue colony hue</span><span class="field-value" id="v-bluehue">245°</span></div>
+          <input type="range" min="0" max="360" step="1" value="245" data-tweak="blueHue" />
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Population</span><span class="num">iii.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Initial red ants</span><span class="field-value" id="v-startred">25</span></div>
+          <input type="range" min="0" max="200" step="1" value="25" data-tweak="startRed" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Initial blue ants</span><span class="field-value" id="v-startblue">25</span></div>
+          <input type="range" min="0" max="200" step="1" value="25" data-tweak="startBlue" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Population cap (per side)</span><span class="field-value" id="v-cap">300</span></div>
+          <input type="range" min="20" max="800" step="10" value="300" data-tweak="popCap" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Worker / Warrior ratio</span><span class="field-value" id="v-ratio">75 / 25</span></div>
+          <input type="range" min="0" max="100" step="1" value="75" data-tweak="workerPct" />
+          <div class="ratio-bar"><div class="w" id="bar-w" style="width:75%"></div><div class="f" id="bar-f" style="width:25%"></div></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Queens per side</span><span class="field-value" id="v-queens">1</span></div>
+          <input type="range" min="1" max="3" step="1" value="1" data-tweak="queens" />
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Breeding</span><span class="num">iv.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Food per egg (queen)</span><span class="field-value" id="v-eggcost">5</span></div>
+          <input type="range" min="1" max="40" step="1" value="5" data-tweak="eggCost" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Food per warrior summon</span><span class="field-value" id="v-summoncost">10</span></div>
+          <input type="range" min="2" max="40" step="1" value="10" data-tweak="summonCost" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Warrior summon cooldown</span><span class="field-value" id="v-summoncd">120</span></div>
+          <input type="range" min="20" max="500" step="10" value="120" data-tweak="summonCd" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Egg → ant time</span><span class="field-value" id="v-hatch">90</span></div>
+          <input type="range" min="10" max="400" step="10" value="90" data-tweak="hatchTime" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Queen breed cooldown</span><span class="field-value" id="v-cooldown">40</span></div>
+          <input type="range" min="5" max="300" step="5" value="40" data-tweak="breedCooldown" />
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Food &amp; Foraging</span><span class="num">v.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Food spawn rate</span><span class="field-value" id="v-foodrate">0.3×</span></div>
+          <input type="range" min="0" max="5" step="0.1" value="0.3" data-tweak="foodRate" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Food pile size</span><span class="field-value" id="v-foodsize">120</span></div>
+          <input type="range" min="5" max="500" step="5" value="120" data-tweak="foodSize" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Max food piles</span><span class="field-value" id="v-foodcap">8</span></div>
+          <input type="range" min="0" max="200" step="1" value="8" data-tweak="foodCap" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Food type</span></div>
+          <div class="seg" data-tweak="foodKind">
+            <button data-v="seed" class="on">Seeds</button>
+            <button data-v="leaf">Leaves</button>
+            <button data-v="berry">Berries</button>
+            <button data-v="mixed">Mixed</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Chop bite size</span><span class="field-value" id="v-bite">1</span></div>
+          <input type="range" min="1" max="20" step="1" value="1" data-tweak="biteSize" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Worker carry capacity</span><span class="field-value" id="v-cap2">3</span></div>
+          <input type="range" min="1" max="20" step="1" value="3" data-tweak="carryCap" />
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Warriors &amp; Combat</span><span class="num">vi.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Warrior speed</span><span class="field-value" id="v-warspeed">0.5×</span></div>
+          <input type="range" min="0.2" max="1.5" step="0.05" value="0.5" data-tweak="warriorSpeed" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Guard radius (density target)</span><span class="field-value" id="v-guard">60</span></div>
+          <input type="range" min="20" max="200" step="5" value="60" data-tweak="guardRadius" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Density threshold</span><span class="field-value" id="v-density">3</span></div>
+          <input type="range" min="1" max="20" step="1" value="3" data-tweak="densityThresh" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Warrior dispersion</span><span class="field-value" id="v-disp">35</span></div>
+          <input type="range" min="0" max="120" step="2" value="35" data-tweak="dispersion" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Aid signal range</span><span class="field-value" id="v-sigr">120</span></div>
+          <input type="range" min="0" max="400" step="5" value="120" data-tweak="signalRange" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Cluster signal boost / ally</span><span class="field-value" id="v-sigb">25%</span></div>
+          <input type="range" min="0" max="80" step="1" value="25" data-tweak="signalBoost" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Detection range</span><span class="field-value" id="v-sight">50</span></div>
+          <input type="range" min="20" max="200" step="5" value="50" data-tweak="sight" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Warrior strength</span><span class="field-value" id="v-strength">3</span></div>
+          <input type="range" min="1" max="10" step="1" value="3" data-tweak="strength" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Worker HP</span><span class="field-value" id="v-hp">2</span></div>
+          <input type="range" min="1" max="20" step="1" value="2" data-tweak="hp" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Warrior HP</span><span class="field-value" id="v-whp">8</span></div>
+          <input type="range" min="2" max="40" step="1" value="8" data-tweak="warriorHp" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Queen HP</span><span class="field-value" id="v-qhp">60</span></div>
+          <input type="range" min="10" max="500" step="10" value="60" data-tweak="queenHp" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Worker fight back</span><span class="field-value" id="v-wfb">on</span></div>
+          <div class="toggle on" data-tweak="workersFight"><span>Workers defend themselves</span><span class="switch"></span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Beetles</span><span class="num">vii.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Beetle invasions</span><span class="field-value" id="v-beetles">on</span></div>
+          <div class="toggle on" data-tweak="beetlesEnabled"><span>Beetles spawn periodically</span><span class="switch"></span></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Beetle frequency</span><span class="field-value" id="v-bfreq">800</span></div>
+          <input type="range" min="100" max="3000" step="50" value="800" data-tweak="beetleFreq" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Beetle HP</span><span class="field-value" id="v-bhp">30</span></div>
+          <input type="range" min="5" max="200" step="5" value="30" data-tweak="beetleHp" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Beetle strength</span><span class="field-value" id="v-bstr">4</span></div>
+          <input type="range" min="1" max="20" step="1" value="4" data-tweak="beetleStr" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Beetle speed</span><span class="field-value" id="v-bspd">0.7×</span></div>
+          <input type="range" min="0.2" max="2.5" step="0.1" value="0.7" data-tweak="beetleSpeed" />
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Obstacles</span><span class="num">viii.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Rock count</span><span class="field-value" id="v-rocks">8</span></div>
+          <input type="range" min="0" max="40" step="1" value="8" data-tweak="rockCount" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Pebble density</span><span class="field-value" id="v-peb">12</span></div>
+          <input type="range" min="0" max="60" step="1" value="12" data-tweak="pebbleCount" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Twigs &amp; leaves</span><span class="field-value" id="v-deco">on</span></div>
+          <div class="toggle on" data-tweak="decor"><span>Decorative ground litter</span><span class="switch"></span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Motion</span><span class="num">ix.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Sim speed</span><span class="field-value" id="v-speed">1.0×</span></div>
+          <input type="range" min="0.1" max="5" step="0.1" value="1.0" data-tweak="speed" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Worker speed</span><span class="field-value" id="v-antspeed">1.0×</span></div>
+          <input type="range" min="0.2" max="3" step="0.1" value="1.0" data-tweak="antSpeed" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Wander chaos</span><span class="field-value" id="v-chaos">0.4</span></div>
+          <input type="range" min="0" max="1" step="0.05" value="0.4" data-tweak="chaos" />
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Ant lifespan</span><span class="field-value" id="v-life">2000</span></div>
+          <input type="range" min="200" max="10000" step="100" value="2000" data-tweak="lifespan" />
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Scenarios</span><span class="num">x.</span></h3>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Spawn position</span></div>
+          <div class="seg" data-tweak="spawnLayout">
+            <button data-v="opposite" class="on">Opposite</button>
+            <button data-v="random">Random</button>
+            <button data-v="clustered">Center</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Food distribution</span></div>
+          <div class="seg" data-tweak="foodLayout">
+            <button data-v="random" class="on">Random</button>
+            <button data-v="middle">Middle</button>
+            <button data-v="edges">Edges</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label">Quick presets</span></div>
+          <div class="seg" data-tweak="preset">
+            <button data-v="balance">Balance</button>
+            <button data-v="famine">Famine</button>
+            <button data-v="boom">Boom</button>
+            <button data-v="war">All-war</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3><span>Live Population</span><span class="num">xi.</span></h3>
+        <canvas class="sparkline" id="spark" width="320" height="40"></canvas>
+        <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:10px; color:var(--ink-2);">
+          <span>← 200 ticks</span><span>now →</span>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        <kbd>Space</kbd> play/pause · <kbd>S</kbd> step · <kbd>R</kbd> reset · <kbd>F</kbd> food · <kbd>1</kbd>/<kbd>2</kbd> red/blue ant · <kbd>3</kbd> beetle · <kbd>O</kbd> rock · <kbd>ESC</kbd> cancel
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ========================================================
+   ANTS WAR KIT v2 — Lifelike sim
+   ======================================================== */
+
+const canvas = document.getElementById('sim');
+const ctx = canvas.getContext('2d');
+
+const T = {
+  // Visual
+  terrain: 'sand',
+  texture: 'high',
+  trails: true,
+  showCarry: true,
+  queenAura: true,
+  combatFlash: true,
+  antSize: 1.0,
+  warriorSize: 1.7,
+  decor: true,
+  // Colors
+  redHue: 22,
+  blueHue: 245,
+  // Population
+  startRed: 25,
+  startBlue: 25,
+  popCap: 300,
+  workerPct: 75,
+  queens: 1,
+  // Breeding
+  eggCost: 5,
+  summonCost: 10,
+  summonCd: 120,
+  hatchTime: 90,
+  breedCooldown: 40,
+  // Food
+  foodRate: 0.3,
+  foodSize: 120,
+  foodCap: 8,
+  foodKind: 'seed',
+  biteSize: 1,
+  carryCap: 3,
+  // Combat
+  warriorSpeed: 0.5,
+  guardRadius: 60,
+  densityThresh: 3,
+  dispersion: 35,
+  signalRange: 120,
+  signalBoost: 25,
+  sight: 50,
+  strength: 3,
+  hp: 2,
+  warriorHp: 8,
+  queenHp: 60,
+  workersFight: true,
+  // Beetles
+  beetlesEnabled: true,
+  beetleFreq: 800,
+  beetleHp: 30,
+  beetleStr: 4,
+  beetleSpeed: 0.7,
+  // Obstacles
+  rockCount: 8,
+  pebbleCount: 12,
+  // Motion
+  speed: 1.0,
+  antSpeed: 1.0,
+  chaos: 0.4,
+  lifespan: 2000,
+  pheromoneLife: 600,
+  pheromoneFollow: 0.9,
+  forageRadius: 18,
+  senseRadius: 50,
+  // Scenarios
+  spawnLayout: 'opposite',
+  foodLayout: 'random',
+  preset: '',
+};
+
+let W = 1000, H = 600, DPR = 1;
+const ants = [];
+const eggs = [];
+const foods = [];
+const queens = [];
+const trails = [];
+const flashes = [];
+const beetles = [];
+const rocks = [];     // {x,y,r} — solid obstacles
+const pebbles = [];   // {x,y,r} — visual only
+const decor = [];     // {x,y,kind,rot}
+let nextBeetle = 800;
+let tick = 0;
+let running = false;
+let casualties = 0;
+let popHistory = [];
+const SAMPLE_EVERY = 5;
+let paintMode = null;
+
+/* ---------- Helpers ---------- */
+const rng = () => Math.random();
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const dist2 = (a,b) => { const dx=a.x-b.x, dy=a.y-b.y; return dx*dx+dy*dy; };
+
+function teamColor(team, light = 0, chromaShift = 0) {
+  const hue = team === 'red' ? T.redHue : T.blueHue;
+  const baseL = team === 'red' ? 38 : 36;
+  const baseC = team === 'red' ? 0.16 : 0.13;
+  return `oklch(${baseL + light}% ${Math.max(0, baseC + chromaShift)} ${hue})`;
+}
+
+function terrainColors() {
+  switch (T.terrain) {
+    case 'dirt':  return { bg1:'#8a6f4a', bg2:'#6e5736', spec:'#a88762', dark:'#4a3a23' };
+    case 'moss':  return { bg1:'#7a8a52', bg2:'#5d6a3a', spec:'#9aac68', dark:'#3a4523' };
+    case 'night': return { bg1:'#2a2a32', bg2:'#1a1a22', spec:'#3a3a45', dark:'#0e0e14' };
+    default:      return { bg1:'#e8dfc8', bg2:'#d6cba8', spec:'#f0e9d4', dark:'#a89e84' };
+  }
+}
+
+function isInk(team) {
+  return T.terrain === 'night' ? '#e0d8c0' : '#1a1814';
+}
+
+/* ---------- Init ---------- */
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  DPR = window.devicePixelRatio || 1;
+  canvas.width = rect.width * DPR;
+  canvas.height = rect.height * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  W = rect.width; H = rect.height;
+}
+
+// Pre-rendered terrain canvas (cached for performance)
+let terrainCache = null;
+let terrainKey = '';
+function buildTerrain() {
+  const key = `${T.terrain}|${T.texture}|${W}|${H}`;
+  if (key === terrainKey && terrainCache) return;
+  terrainKey = key;
+  const off = document.createElement('canvas');
+  off.width = W; off.height = H;
+  const c = off.getContext('2d');
+  const cols = terrainColors();
+  // base gradient
+  const grad = c.createRadialGradient(W*0.5, H*0.5, 0, W*0.5, H*0.5, Math.max(W,H)*0.7);
+  grad.addColorStop(0, cols.bg1);
+  grad.addColorStop(1, cols.bg2);
+  c.fillStyle = grad;
+  c.fillRect(0, 0, W, H);
+
+  if (T.texture !== 'off') {
+    const density = T.texture === 'high' ? 0.0008 : 0.0003;
+    const n = Math.floor(W * H * density);
+    for (let i = 0; i < n; i++) {
+      const x = rng()*W, y = rng()*H;
+      const v = rng();
+      c.fillStyle = v < 0.4 ? cols.spec : (v < 0.7 ? cols.dark : cols.bg1);
+      c.globalAlpha = 0.15 + rng()*0.25;
+      c.fillRect(x, y, 1.2, 1.2);
+    }
+    c.globalAlpha = 1;
+    // larger sand grains
+    const grains = T.texture === 'high' ? 200 : 60;
+    for (let i = 0; i < grains; i++) {
+      const x = rng()*W, y = rng()*H;
+      c.fillStyle = cols.dark;
+      c.globalAlpha = 0.15;
+      c.beginPath();
+      c.arc(x, y, 0.8 + rng()*1.6, 0, Math.PI*2);
+      c.fill();
+    }
+    c.globalAlpha = 1;
+  }
+  terrainCache = off;
+}
+
+function placeRocks() {
+  rocks.length = 0;
+  for (let i = 0; i < T.rockCount; i++) {
+    let attempts = 0, r, x, y;
+    do {
+      r = 14 + rng()*28;
+      x = r + 20 + rng()*(W - 2*r - 40);
+      y = r + 20 + rng()*(H - 2*r - 40);
+      attempts++;
+    } while (attempts < 20 && nearOtherEntity(x, y, r + 50));
+    // generate jagged shape
+    const verts = [];
+    const sides = 6 + Math.floor(rng()*4);
+    for (let s = 0; s < sides; s++) {
+      const ang = (s/sides)*Math.PI*2;
+      const rad = r * (0.7 + rng()*0.45);
+      verts.push({ a: ang, r: rad });
+    }
+    rocks.push({ x, y, r, verts, hue: 30 + rng()*30, light: 0.5 + rng()*0.2 });
+  }
+}
+
+function placePebbles() {
+  pebbles.length = 0;
+  for (let i = 0; i < T.pebbleCount; i++) {
+    pebbles.push({
+      x: 10 + rng()*(W-20),
+      y: 10 + rng()*(H-20),
+      r: 1.5 + rng()*3,
+      shade: 0.3 + rng()*0.4,
+    });
+  }
+}
+
+function placeDecor() {
+  decor.length = 0;
+  if (!T.decor) return;
+  const n = Math.floor(W*H/10000);
+  for (let i = 0; i < n; i++) {
+    decor.push({
+      x: 10 + rng()*(W-20),
+      y: 10 + rng()*(H-20),
+      kind: rng() < 0.5 ? 'twig' : 'leaf',
+      rot: rng()*Math.PI*2,
+      size: 6 + rng()*10,
+      shade: 0.4 + rng()*0.3,
+    });
+  }
+}
+
+function nearOtherEntity(x, y, minDist) {
+  for (const r of rocks) {
+    const d = Math.hypot(r.x-x, r.y-y);
+    if (d < r.r + minDist) return true;
+  }
+  for (const q of queens) {
+    if (Math.hypot(q.x-x, q.y-y) < minDist) return true;
+  }
+  return false;
+}
+
+function reset() {
+  ants.length = 0; eggs.length = 0; foods.length = 0;
+  queens.length = 0; trails.length = 0; flashes.length = 0;
+  beetles.length = 0; popHistory.length = 0;
+  tick = 0; casualties = 0;
+  resize();
+  buildTerrain();
+  placeRocks();
+  placePebbles();
+  placeDecor();
+
+  // queens
+  const placeQ = (team) => {
+    for (let i = 0; i < T.queens; i++) {
+      let x, y, attempts = 0;
+      do {
+        if (T.spawnLayout === 'opposite') {
+          x = team === 'red' ? W * 0.12 : W * 0.88;
+          y = H * (0.3 + (i / Math.max(1, T.queens-0.99)) * 0.4) + (rng()-0.5)*30;
+        } else if (T.spawnLayout === 'clustered') {
+          x = W/2 + (rng()-0.5)*100;
+          y = H/2 + (rng()-0.5)*100;
+        } else {
+          x = 60 + rng()*(W-120);
+          y = 60 + rng()*(H-120);
+        }
+        attempts++;
+      } while (attempts < 10 && hitsRock(x, y, 15));
+      queens.push({
+        kind:'queen', team, x, y, hp: T.queenHp, maxHp: T.queenHp,
+        food: 0, breedTimer: T.breedCooldown/2, summonTimer: T.summonCd/2, alive: true
+      });
+    }
+  };
+  placeQ('red');
+  placeQ('blue');
+
+  // initial population
+  for (let i = 0; i < T.startRed; i++) seedAnt('red');
+  for (let i = 0; i < T.startBlue; i++) seedAnt('blue');
+
+  // initial food
+  for (let i = 0; i < Math.min(T.foodCap, 12); i++) spawnFood();
+
+  nextBeetle = T.beetleFreq * (0.4 + rng()*0.6);
+}
+
+function seedAnt(team) {
+  const tq = queens.filter(q => q.team === team);
+  if (!tq.length) return;
+  const q = tq[Math.floor(rng()*tq.length)];
+  const role = rng() < (T.workerPct/100) ? 'worker' : 'warrior';
+  spawnAnt(team, q.x + (rng()-0.5)*40, q.y + (rng()-0.5)*40, role);
+}
+
+function spawnAnt(team, x, y, role) {
+  const sideCount = ants.filter(a => a.team === team).length;
+  if (sideCount >= T.popCap) return;
+  ants.push({
+    kind:'ant', team, role,
+    x, y, vx:0, vy:0, angle: rng()*Math.PI*2,
+    hp: role === 'warrior' ? T.warriorHp : T.hp,
+    maxHp: role === 'warrior' ? T.warriorHp : T.hp,
+    carrying: 0, target: null, state:'wander',
+    age: 0, maxAge: T.lifespan*(0.85 + rng()*0.3),
+    cd: 0, flash: 0, legPhase: rng()*Math.PI*2,
+    guardX: x, guardY: y,
+    wanderAngle: rng()*Math.PI*2,
+    wanderTimer: 0,
+    signal: 0,
+    fighting: false,
+  });
+}
+
+function spawnFood(x, y, amount) {
+  if (foods.length >= T.foodCap && amount === undefined) return;
+  if (x === undefined) {
+    let attempts = 0;
+    do {
+      if (T.foodLayout === 'middle')      { x = W*0.3 + rng()*W*0.4; y = H*0.3 + rng()*H*0.4; }
+      else if (T.foodLayout === 'edges')  {
+        const s = Math.floor(rng()*4);
+        if (s===0)      { x = rng()*W; y = 30 + rng()*40; }
+        else if (s===1) { x = rng()*W; y = H-30 - rng()*40; }
+        else if (s===2) { x = 30 + rng()*40; y = rng()*H; }
+        else            { x = W-30 - rng()*40; y = rng()*H; }
+      } else            { x = 30 + rng()*(W-60); y = 30 + rng()*(H-60); }
+      attempts++;
+    } while (attempts < 20 && hitsRock(x, y, 10));
+  }
+  let kind = T.foodKind;
+  if (kind === 'mixed') kind = ['seed','leaf','berry'][Math.floor(rng()*3)];
+  foods.push({
+    kind:'food', subKind: kind, x, y,
+    amount: amount !== undefined ? amount : T.foodSize,
+    initial: amount !== undefined ? amount : T.foodSize,
+    rot: rng()*Math.PI*2,
+  });
+}
+
+function spawnBeetle() {
+  // come from edge
+  const side = Math.floor(rng()*4);
+  let x, y;
+  if (side === 0) { x = rng()*W; y = -10; }
+  else if (side === 1) { x = rng()*W; y = H+10; }
+  else if (side === 2) { x = -10; y = rng()*H; }
+  else { x = W+10; y = rng()*H; }
+  beetles.push({
+    kind:'beetle', x, y,
+    vx:0, vy:0, angle: 0,
+    hp: T.beetleHp, maxHp: T.beetleHp,
+    target: null, cd: 0, flash: 0, legPhase: 0,
+  });
+  showAlert('⚠ Beetle approaching');
+}
+
+/* ---------- Collision ---------- */
+function hitsRock(x, y, r) {
+  for (const rk of rocks) {
+    const d = Math.hypot(rk.x-x, rk.y-y);
+    if (d < rk.r + r) return true;
+  }
+  return false;
+}
+function pushOutOfRocks(e, radius) {
+  for (const rk of rocks) {
+    const dx = e.x - rk.x, dy = e.y - rk.y;
+    const d = Math.hypot(dx, dy);
+    const min = rk.r + radius;
+    if (d < min && d > 0.001) {
+      const push = (min - d) + 0.5;
+      e.x += (dx/d) * push;
+      e.y += (dy/d) * push;
+    }
+  }
+}
+
+/* ---------- Step ---------- */
+function step(dt) {
+  tick++;
+
+  // food spawn
+  if (rng() < 0.04 * T.foodRate * dt) spawnFood();
+
+  // beetles
+  if (T.beetlesEnabled) {
+    nextBeetle -= dt;
+    if (nextBeetle <= 0) {
+      spawnBeetle();
+      nextBeetle = T.beetleFreq * (0.6 + rng()*0.8);
+    }
+  }
+
+  // eggs
+  for (let i = eggs.length-1; i >= 0; i--) {
+    const e = eggs[i];
+    e.t += dt;
+    if (e.t >= T.hatchTime) {
+      spawnAnt(e.team, e.x + (rng()-0.5)*8, e.y + (rng()-0.5)*8, e.role);
+      eggs.splice(i, 1);
+    }
+  }
+
+  // queens
+  for (const q of queens) {
+    if (!q.alive) continue;
+    q.breedTimer -= dt;
+    if (q.breedTimer <= 0 && q.food >= T.eggCost) {
+      const sideCount = ants.filter(a=>a.team===q.team).length + eggs.filter(e=>e.team===q.team).length;
+      if (sideCount < T.popCap) {
+        q.food -= T.eggCost;
+        const role = rng() < (T.workerPct/100) ? 'worker' : 'warrior';
+        eggs.push({ team:q.team, role, x:q.x+(rng()-0.5)*15, y:q.y+(rng()-0.5)*15, t:0 });
+      }
+      q.breedTimer = T.breedCooldown + (rng()-0.5)*T.breedCooldown*0.3;
+    }
+  }
+
+  // ants
+  for (let i = ants.length-1; i >= 0; i--) {
+    const a = ants[i];
+    a.age += dt;
+    a.cd = Math.max(0, a.cd - dt);
+    a.flash = Math.max(0, a.flash - dt);
+
+    if (a.age >= a.maxAge || a.hp <= 0) {
+      ants.splice(i, 1);
+      casualties++;
+      continue;
+    }
+
+    if (a.role === 'warrior') {
+      stepWarrior(a, dt);
+    } else {
+      stepWorker(a, dt);
+    }
+
+    // Chaos nudge for warriors only — workers' velocity is now fully managed
+    // inside stepWorker (curvy heading, pheromone follow, food chase).
+    if (a.role === 'warrior') {
+      a.vx += (rng()-0.5) * T.chaos * 0.05;
+      a.vy += (rng()-0.5) * T.chaos * 0.05;
+    }
+    const baseMax = a.role === 'warrior' ? T.warriorSpeed : 1.5 * T.antSpeed;
+    const sp = Math.hypot(a.vx, a.vy);
+    if (sp > baseMax) { a.vx = a.vx/sp*baseMax; a.vy = a.vy/sp*baseMax; }
+
+    a.x += a.vx * dt;
+    a.y += a.vy * dt;
+
+    // bounds & rocks — soft push back from edges (heading already biases inward)
+    if (a.x < 6) { a.x = 6; a.vx = Math.abs(a.vx) * 0.6; if (a.heading !== undefined) a.heading = 0 + (rng()-0.5)*0.6; }
+    if (a.x > W-6) { a.x = W-6; a.vx = -Math.abs(a.vx) * 0.6; if (a.heading !== undefined) a.heading = Math.PI + (rng()-0.5)*0.6; }
+    if (a.y < 6) { a.y = 6; a.vy = Math.abs(a.vy) * 0.6; if (a.heading !== undefined) a.heading = Math.PI/2 + (rng()-0.5)*0.6; }
+    if (a.y > H-6) { a.y = H-6; a.vy = -Math.abs(a.vy) * 0.6; if (a.heading !== undefined) a.heading = -Math.PI/2 + (rng()-0.5)*0.6; }
+    pushOutOfRocks(a, a.role === 'warrior' ? 4 : 2.5);
+
+    a.angle = Math.atan2(a.vy, a.vx);
+    a.legPhase += sp * 0.4 + 0.05;
+
+    // Pheromone deposition: ONLY by workers carrying food back home.
+    // Strength scales with how much food they're hauling. Existing nearby
+    // dots from the same team are reinforced (strength + lifetime refresh)
+    // instead of spawning duplicates, so well-trafficked routes get bolder.
+    if (T.trails && tick % 3 === 0 && a.state === 'return' && a.role === 'worker' && a.carrying > 0) {
+      const drop = 0.4 + (a.carrying / Math.max(1, T.carryCap)) * 1.2; // 0.4..1.6
+      let merged = false;
+      for (let i = trails.length - 1; i >= 0; i--) {
+        const tr = trails[i];
+        if (tr.team !== a.team) continue;
+        const dx = tr.x - a.x, dy = tr.y - a.y;
+        if (dx*dx + dy*dy < 36) { // within 6px → reinforce
+          tr.strength = Math.min(6, tr.strength + drop);
+          tr.t = Math.min(T.pheromoneLife, tr.t + T.pheromoneLife * 0.4);
+          merged = true;
+          break;
+        }
+      }
+      if (!merged) {
+        trails.push({ x: a.x, y: a.y, team: a.team, t: T.pheromoneLife, strength: drop });
+      }
+    }
+  }
+
+  // beetles
+  for (let i = beetles.length-1; i >= 0; i--) {
+    const b = beetles[i];
+    stepBeetle(b, dt);
+    if (b.hp <= 0) {
+      // drop food on death
+      spawnFood(b.x, b.y, T.foodSize * 1.5);
+      flashes.push({ x:b.x, y:b.y, t:20, big:true });
+      beetles.splice(i, 1);
+    }
+  }
+
+  // queen kill
+  for (const q of queens) {
+    if (!q.alive) {
+      for (const a of ants) {
+        if (a.team === q.team && rng() < 0.015) a.hp -= 1;
+      }
+    }
+  }
+
+  // cleanup
+  for (let i = foods.length-1; i >= 0; i--) if (foods[i].amount <= 0) foods.splice(i, 1);
+  for (let i = trails.length-1; i >= 0; i--) { trails[i].t -= dt; if (trails[i].t <= 0) trails.splice(i, 1); }
+  for (let i = flashes.length-1; i >= 0; i--) { flashes[i].t -= dt; if (flashes[i].t <= 0) flashes.splice(i, 1); }
+
+  if (tick % SAMPLE_EVERY === 0) {
+    popHistory.push({
+      r: ants.filter(a=>a.team==='red').length,
+      b: ants.filter(a=>a.team==='blue').length,
+    });
+    if (popHistory.length > 200) popHistory.shift();
+  }
+}
+
+/* ---------- Worker ---------- */
+function stepWorker(a, dt) {
+  const myQueen = nearestQueen(a);
+
+  // self-defense first
+  if (T.workersFight) {
+    for (const b of ants) {
+      if (b.team === a.team) continue;
+      if (dist2(a, b) < 49) {
+        if (a.cd <= 0) {
+          b.hp -= 1; a.hp -= 1;
+          a.cd = 14; a.flash = 6;
+          if (T.combatFlash) flashes.push({ x:(a.x+b.x)/2, y:(a.y+b.y)/2, t:8 });
+        }
+        return;
+      }
+    }
+  }
+
+  // Returning home with food
+  if (a.carrying >= T.carryCap || (a.target?.kind === 'food' && a.target.amount <= 0 && a.carrying > 0)) {
+    if (myQueen) {
+      const dx = myQueen.x - a.x, dy = myQueen.y - a.y;
+      const d = Math.hypot(dx,dy) || 1;
+      a.vx = (dx/d) * T.antSpeed;
+      a.vy = (dy/d) * T.antSpeed;
+      a.state = 'return';
+      if (a.heading === undefined) a.heading = Math.atan2(a.vy, a.vx);
+      else a.heading = Math.atan2(a.vy, a.vx);
+      if (d < 14) {
+        myQueen.food += a.carrying;
+        a.carrying = 0; a.target = null;
+        a.state = 'wander';
+      }
+    }
+    return;
+  }
+
+  // Locked onto a food pile already (rediscovered or arrived via pheromone)
+  if (a.target?.kind === 'food' && a.target.amount > 0) {
+    const dx = a.target.x - a.x, dy = a.target.y - a.y;
+    const d = Math.hypot(dx,dy) || 1;
+    if (d < 7) {
+      const bite = Math.min(T.biteSize, a.target.amount, T.carryCap - a.carrying);
+      a.target.amount -= bite;
+      a.carrying += bite;
+      a.state = 'chop';
+      a.vx *= 0.5; a.vy *= 0.5;
+    } else {
+      a.vx = (dx/d) * T.antSpeed;
+      a.vy = (dy/d) * T.antSpeed;
+      a.heading = Math.atan2(dy, dx);
+      a.state = 'seek-food';
+    }
+    return;
+  }
+
+  // === Foraging without a known food target ===
+  // Workers are essentially blind. They can only spot food within forageRadius.
+  // Sense food locally
+  const fr2 = T.forageRadius * T.forageRadius;
+  let spotted = null, sd = fr2;
+  for (const f of foods) {
+    if (f.amount <= 0) continue;
+    const dx = f.x - a.x, dy = f.y - a.y;
+    const d2 = dx*dx + dy*dy;
+    if (d2 < sd) { sd = d2; spotted = f; }
+  }
+  if (spotted) {
+    a.target = spotted;
+    a.state = 'seek-food';
+    return;
+  }
+
+  // Initialize heading
+  if (a.heading === undefined) a.heading = rng() * Math.PI * 2;
+
+  // Sense pheromone in a forward cone — follow if found.
+  // While foraging (no food in hand), prefer dots that point AWAY from the queen
+  // (those lead outward toward food). When confused, just follow the strongest.
+  let followAngle = null;
+  if (T.pheromoneFollow > 0 && trails.length) {
+    const lookR = T.senseRadius;
+    const lookR2 = lookR * lookR;
+    const hx = Math.cos(a.heading), hy = Math.sin(a.heading);
+    let bestX = 0, bestY = 0, bestW = 0;
+    // queen direction (used to bias toward outbound trails)
+    let qx = 0, qy = 0;
+    if (myQueen) { qx = myQueen.x - a.x; qy = myQueen.y - a.y; const ql = Math.hypot(qx,qy)||1; qx/=ql; qy/=ql; }
+    for (const tr of trails) {
+      if (tr.team !== a.team) continue;
+      const dx = tr.x - a.x, dy = tr.y - a.y;
+      const d2 = dx*dx + dy*dy;
+      if (d2 > lookR2 || d2 < 9) continue;
+      const d = Math.sqrt(d2);
+      const nx = dx / d, ny = dy / d;
+      // forward 240° cone
+      const dot = nx * hx + ny * hy;
+      if (dot < -0.5) continue;
+      // weight: stronger dots, closer dots, slightly favor outbound (away from queen)
+      let w = (tr.strength || 1) * (1 - d / lookR);
+      if (myQueen) {
+        const outbound = -(nx * qx + ny * qy); // 1 = directly away from queen
+        w *= (1 + outbound * 0.4);
+      }
+      if (w > 0) { bestX += nx * w; bestY += ny * w; bestW += w; }
+    }
+    if (bestW > 0.3) {
+      followAngle = Math.atan2(bestY, bestX);
+    }
+  }
+
+  // Curvy random walk; if pheromone signal, rotate heading toward it
+  a.heading += (rng() - 0.5) * T.chaos * 0.22;
+
+  // Edge anti-gravity: the closer to a wall, the more strongly the heading
+  // is rotated toward the map center. Falls off smoothly with distance.
+  {
+    const margin = 80;
+    const dl = a.x, dr = W - a.x, dt2 = a.y, db = H - a.y;
+    const minD = Math.min(dl, dr, dt2, db);
+    if (minD < margin) {
+      // unit vector pointing inward (away from nearest edge)
+      let ix = 0, iy = 0;
+      if (dl <= dr) ix = 1; else ix = -1;
+      if (dt2 <= db) iy = 1; else iy = -1;
+      // weight axes by which is closer (mostly the closer wall)
+      const wx = (1 - Math.min(1, Math.min(dl, dr) / margin));
+      const wy = (1 - Math.min(1, Math.min(dt2, db) / margin));
+      const fx = ix * wx, fy = iy * wy;
+      const flen = Math.hypot(fx, fy);
+      if (flen > 0.001) {
+        const inAng = Math.atan2(fy / flen, fx / flen);
+        let delta = inAng - a.heading;
+        while (delta >  Math.PI) delta -= Math.PI * 2;
+        while (delta < -Math.PI) delta += Math.PI * 2;
+        // strength scales with closeness; quadratic so it's gentle far out, firm near wall
+        const strength = Math.min(1, Math.max(wx, wy));
+        a.heading += delta * strength * strength * 0.35;
+      }
+    }
+  }
+
+  if (followAngle !== null) {
+    let delta = followAngle - a.heading;
+    while (delta >  Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    a.heading += delta * Math.min(0.3, T.pheromoneFollow * 0.18);
+  }
+
+  const sp = T.antSpeed * 1.05;
+  const tvx = Math.cos(a.heading) * sp;
+  const tvy = Math.sin(a.heading) * sp;
+  a.vx = a.vx * 0.78 + tvx * 0.22;
+  a.vy = a.vy * 0.78 + tvy * 0.22;
+  a.state = 'wander';
+}
+
+/* ---------- Warrior ---------- */
+function stepWarrior(a, dt) {
+  // 1. detect threats in sight (rivals + beetles)
+  let nearestThreat = null, nThreatD = T.sight*T.sight;
+  for (const b of ants) {
+    if (b.team === a.team) continue;
+    const d = dist2(a, b);
+    if (d < nThreatD) { nThreatD = d; nearestThreat = b; }
+  }
+  for (const q of queens) {
+    if (q.team === a.team || !q.alive) continue;
+    const d = dist2(a, q);
+    if (d < nThreatD) { nThreatD = d; nearestThreat = q; }
+  }
+  for (const bt of beetles) {
+    const d = dist2(a, bt);
+    if (d < nThreatD * 1.5) { nThreatD = d; nearestThreat = bt; }
+  }
+
+  // Receive aid signal from another fighting warrior?
+  let aidX = null, aidY = null, aidD2 = Infinity;
+  for (const w of ants) {
+    if (w === a || w.team !== a.team || w.role !== 'warrior') continue;
+    if (!w.fighting || w.signal <= 0) continue;
+    // count cluster around the caller to compute effective signal radius
+    let cluster = 0;
+    const cr2 = (T.guardRadius * 0.8) * (T.guardRadius * 0.8);
+    for (const x of ants) {
+      if (x === w || x.team !== w.team || x.role !== 'warrior') continue;
+      if (dist2(w, x) < cr2) cluster++;
+    }
+    const eff = T.signalRange * (1 + Math.min(cluster, 6) * (T.signalBoost / 100));
+    const d = dist2(a, w);
+    if (d < eff*eff && d < aidD2) {
+      aidD2 = d; aidX = w.x; aidY = w.y;
+    }
+  }
+
+  if (nearestThreat) {
+    const dx = nearestThreat.x - a.x, dy = nearestThreat.y - a.y;
+    const d = Math.hypot(dx, dy) || 1;
+    a.fighting = true;
+    a.signal = 30; // ticks of signal active
+    if (d < 8) {
+      if (a.cd <= 0) {
+        nearestThreat.hp -= T.strength;
+        a.flash = 6;
+        if (nearestThreat.kind === 'queen' && nearestThreat.hp <= 0) nearestThreat.alive = false;
+        if (T.combatFlash) flashes.push({ x:(a.x+nearestThreat.x)/2, y:(a.y+nearestThreat.y)/2, t:8 });
+        if (nearestThreat.kind === 'ant' || nearestThreat.kind === 'beetle') {
+          const damage = nearestThreat.kind === 'beetle' ? T.beetleStr : Math.max(1, T.strength * 0.4);
+          a.hp -= damage;
+          nearestThreat.flash = 6;
+        }
+        a.cd = 14;
+      }
+      // smooth velocity decay (no instant snap)
+      a.vx *= 0.7; a.vy *= 0.7;
+    } else {
+      // pursue smoothly
+      const sp = T.warriorSpeed * 1.4;
+      const tvx = (dx/d) * sp, tvy = (dy/d) * sp;
+      a.vx = a.vx * 0.78 + tvx * 0.22;
+      a.vy = a.vy * 0.78 + tvy * 0.22;
+    }
+    a.state = 'attack';
+    return;
+  }
+
+  // No direct threat — but maybe answer an aid call
+  if (aidX !== null) {
+    const dx = aidX - a.x, dy = aidY - a.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const sp = T.warriorSpeed * 1.3;
+    const tvx = (dx/d) * sp, tvy = (dy/d) * sp;
+    a.vx = a.vx * 0.82 + tvx * 0.18;
+    a.vy = a.vy * 0.82 + tvy * 0.18;
+    a.state = 'rush';
+    a.fighting = false;
+    return;
+  }
+
+  a.fighting = false;
+  a.signal = Math.max(0, a.signal - dt);
+
+  // 2. no threats — pick a guard target slowly
+  if (a.wanderTimer <= 0) {
+    // sample candidates: current spot, queen, a few worker positions
+    const cands = [{ x: a.guardX, y: a.guardY, score: -1 }];
+    const myQ = nearestQueen(a);
+    if (myQ) cands.push({ x: myQ.x, y: myQ.y, score: 0 });
+    const teammates = ants.filter(x => x.team === a.team && x.role === 'worker');
+    for (let s = 0; s < 4 && teammates.length > 0; s++) {
+      const t = teammates[Math.floor(rng()*teammates.length)];
+      cands.push({ x: t.x, y: t.y, score: 0 });
+    }
+    // pick the candidate with best (workerDensity - warriorCrowding)
+    let best = cands[0], bestScore = -Infinity;
+    for (const c of cands) {
+      const wd = densityAt(c.x, c.y, T.guardRadius, a.team);
+      const wc = warriorDensityAt(c.x, c.y, T.dispersion, a.team, a);
+      const score = wd - wc * 4 + (rng()-0.5);
+      if (score > bestScore) { bestScore = score; best = c; }
+    }
+    // Add a slight random offset so warriors don't pile on the exact same point
+    const off = T.dispersion * 0.6;
+    a.guardX = best.x + (rng()-0.5)*off;
+    a.guardY = best.y + (rng()-0.5)*off;
+    a.wanderTimer = 80 + rng()*60; // long, deliberate cycle
+  }
+  a.wanderTimer -= dt;
+
+  // 3. drift gently toward guard point — but stay spaced from other warriors
+  const dx = a.guardX - a.x, dy = a.guardY - a.y;
+  const d = Math.hypot(dx,dy) || 1;
+  // target velocity toward guard point
+  let tvx = 0, tvy = 0;
+  if (d > 14) {
+    tvx = (dx/d) * T.warriorSpeed * 0.85;
+    tvy = (dy/d) * T.warriorSpeed * 0.85;
+    a.state = 'patrol';
+  } else {
+    // gentle wander around guard point — slow heading change
+    a.wanderAngle += (rng()-0.5) * 0.04;
+    tvx = Math.cos(a.wanderAngle) * T.warriorSpeed * 0.35;
+    tvy = Math.sin(a.wanderAngle) * T.warriorSpeed * 0.35;
+    a.state = 'guard';
+  }
+
+  // dispersion: push away from nearby warriors (only when no threat present)
+  let pushX = 0, pushY = 0;
+  const dispR = T.dispersion;
+  const dispR2 = dispR * dispR;
+  for (const w of ants) {
+    if (w === a || w.team !== a.team || w.role !== 'warrior') continue;
+    const ddx = a.x - w.x, ddy = a.y - w.y;
+    const dd2 = ddx*ddx + ddy*ddy;
+    if (dd2 < dispR2 && dd2 > 0.1) {
+      const dd = Math.sqrt(dd2);
+      const force = (1 - dd/dispR);
+      pushX += (ddx/dd) * force;
+      pushY += (ddy/dd) * force;
+    }
+  }
+  tvx += pushX * T.warriorSpeed * 0.6;
+  tvy += pushY * T.warriorSpeed * 0.6;
+
+  // smooth velocity blend — heavy inertia, slow turn-on-heels
+  a.vx = a.vx * 0.88 + tvx * 0.12;
+  a.vy = a.vy * 0.88 + tvy * 0.12;
+}
+
+function warriorDensityAt(x, y, r, team, exclude) {
+  let n = 0;
+  const r2 = r*r;
+  for (const a of ants) {
+    if (a === exclude) continue;
+    if (a.team !== team || a.role !== 'warrior') continue;
+    const dx = a.x-x, dy = a.y-y;
+    if (dx*dx + dy*dy < r2) n++;
+  }
+  return n;
+}
+
+function densityAt(x, y, r, team) {
+  let n = 0;
+  const r2 = r*r;
+  for (const a of ants) {
+    if (a.team !== team) continue;
+    const dx = a.x-x, dy = a.y-y;
+    if (dx*dx + dy*dy < r2) n++;
+  }
+  return n;
+}
+
+/* ---------- Beetle ---------- */
+function stepBeetle(b, dt) {
+  b.cd = Math.max(0, b.cd - dt);
+  b.flash = Math.max(0, b.flash - dt);
+  // pick nearest ant or queen
+  let nearest = null, nd = 1e18;
+  for (const a of ants) {
+    const d = dist2(a, b);
+    if (d < nd) { nd = d; nearest = a; }
+  }
+  for (const q of queens) {
+    if (!q.alive) continue;
+    const d = dist2(q, b);
+    if (d < nd * 0.6) { nd = d; nearest = q; }
+  }
+
+  if (nearest) {
+    const dx = nearest.x - b.x, dy = nearest.y - b.y;
+    const d = Math.hypot(dx,dy) || 1;
+    if (d < 10) {
+      if (b.cd <= 0) {
+        nearest.hp -= T.beetleStr;
+        b.flash = 8;
+        if (nearest.kind === 'queen' && nearest.hp <= 0) nearest.alive = false;
+        if (T.combatFlash) flashes.push({ x:(b.x+nearest.x)/2, y:(b.y+nearest.y)/2, t:10, big:true });
+        b.cd = 18;
+      }
+      b.vx *= 0.4; b.vy *= 0.4;
+    } else {
+      b.vx = (dx/d) * T.beetleSpeed;
+      b.vy = (dy/d) * T.beetleSpeed;
+    }
+  }
+
+  b.x += b.vx * dt;
+  b.y += b.vy * dt;
+  b.x = clamp(b.x, -20, W+20);
+  b.y = clamp(b.y, -20, H+20);
+  pushOutOfRocks(b, 7);
+  b.angle = Math.atan2(b.vy, b.vx);
+  b.legPhase += Math.hypot(b.vx, b.vy) * 0.3 + 0.05;
+}
+
+function nearestQueen(a) {
+  let best = null, bd = 1e18;
+  for (const q of queens) {
+    if (q.team !== a.team || !q.alive) continue;
+    const d = dist2(a, q);
+    if (d < bd) { bd = d; best = q; }
+  }
+  return best;
+}
+
+/* ===========================================================
+   RENDER
+   =========================================================== */
+function draw() {
+  // terrain
+  if (terrainCache) ctx.drawImage(terrainCache, 0, 0, W, H);
+
+  // pebbles
+  const cols = terrainColors();
+  for (const p of pebbles) {
+    ctx.fillStyle = cols.dark;
+    ctx.globalAlpha = p.shade * 0.5;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = cols.spec;
+    ctx.globalAlpha = p.shade * 0.4;
+    ctx.beginPath();
+    ctx.arc(p.x - p.r*0.3, p.y - p.r*0.3, p.r*0.4, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // decor
+  if (T.decor) {
+    for (const d of decor) drawDecor(d);
+  }
+
+  // trails
+  if (T.trails) {
+    for (const t of trails) {
+      // Lifetime fade: stays full strength most of its life, then fades out
+      const lifeFrac = clamp(t.t / T.pheromoneLife, 0, 1);
+      const lifeAlpha = lifeFrac < 0.3 ? lifeFrac / 0.3 : 1; // fade only at the end
+      // Strength: bolder + slightly larger dot when reinforced
+      const s = clamp(t.strength || 1, 0.4, 6);
+      const alpha = lifeAlpha * Math.min(0.55, 0.18 + s * 0.07);
+      const r = 1 + Math.min(2.5, s * 0.4);
+      ctx.fillStyle = t.team === 'red'
+        ? `oklch(50% 0.15 ${T.redHue} / ${alpha})`
+        : `oklch(45% 0.13 ${T.blueHue} / ${alpha})`;
+      ctx.fillRect(t.x - r, t.y - r, r * 2, r * 2);
+    }
+  }
+
+  // food
+  for (const f of foods) drawFood(f);
+
+  // rocks (shadow then body)
+  for (const r of rocks) drawRock(r);
+
+  // eggs
+  for (const e of eggs) drawEgg(e);
+
+  // queens
+  for (const q of queens) drawQueen(q);
+
+  // ants
+  for (const a of ants) {
+    if (a.role === 'warrior') drawWarrior(a);
+    else drawWorker(a);
+  }
+
+  // beetles
+  for (const b of beetles) drawBeetle(b);
+
+  // flashes
+  if (T.combatFlash) {
+    for (const f of flashes) {
+      ctx.strokeStyle = f.big
+        ? `oklch(70% 0.20 30 / ${f.t/20})`
+        : `oklch(75% 0.18 80 / ${f.t/8})`;
+      ctx.lineWidth = f.big ? 2.5 : 1.5;
+      ctx.beginPath();
+      const r = f.big ? (20-f.t)*1.4 + 6 : (8-f.t)*1.2 + 3;
+      ctx.arc(f.x, f.y, r, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawDecor(d) {
+  ctx.save();
+  ctx.translate(d.x, d.y);
+  ctx.rotate(d.rot);
+  ctx.globalAlpha = d.shade;
+  if (d.kind === 'twig') {
+    ctx.strokeStyle = '#5a4326';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-d.size/2, 0);
+    ctx.lineTo(d.size/2, 0);
+    ctx.moveTo(d.size*0.1, 0);
+    ctx.lineTo(d.size*0.3, -d.size*0.3);
+    ctx.stroke();
+  } else {
+    // dried leaf
+    ctx.fillStyle = '#7a5a30';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, d.size*0.6, d.size*0.3, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#3a2a18';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(-d.size*0.5, 0);
+    ctx.lineTo(d.size*0.5, 0);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawRock(r) {
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(r.x + 3, r.y + r.r*0.6 + 3, r.r*0.95, r.r*0.4, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // body
+  ctx.beginPath();
+  for (let i = 0; i < r.verts.length; i++) {
+    const v = r.verts[i];
+    const px = r.x + Math.cos(v.a)*v.r;
+    const py = r.y + Math.sin(v.a)*v.r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(r.x - r.r, r.y - r.r, r.x + r.r, r.y + r.r);
+  grad.addColorStop(0, `oklch(${(r.light+0.15)*100}% 0.02 ${r.hue})`);
+  grad.addColorStop(1, `oklch(${(r.light-0.1)*100}% 0.03 ${r.hue})`);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = `oklch(25% 0.02 ${r.hue})`;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // highlights
+  ctx.fillStyle = `oklch(${(r.light+0.25)*100}% 0.02 ${r.hue} / 0.5)`;
+  ctx.beginPath();
+  ctx.ellipse(r.x - r.r*0.3, r.y - r.r*0.4, r.r*0.3, r.r*0.15, -0.6, 0, Math.PI*2);
+  ctx.fill();
+  // texture spots
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = `oklch(20% 0.02 ${r.hue} / 0.35)`;
+    ctx.beginPath();
+    ctx.arc(r.x + (rng()-0.5)*r.r*0.8, r.y + (rng()-0.5)*r.r*0.8, 1 + rng()*1.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function drawFood(f) {
+  const ratio = f.amount / Math.max(1, f.initial);
+  const sz = 4 + ratio * 9;
+  ctx.save();
+  ctx.translate(f.x, f.y);
+  ctx.rotate(f.rot);
+
+  if (f.subKind === 'seed') {
+    // cluster of seeds
+    const count = Math.ceil(ratio * 6) + 1;
+    for (let i = 0; i < count; i++) {
+      const a = (i/count)*Math.PI*2;
+      const r = sz*0.4;
+      const x = Math.cos(a)*r, y = Math.sin(a)*r;
+      // shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath();
+      ctx.ellipse(x+1, y+1, 2.5, 1.6, a, 0, Math.PI*2);
+      ctx.fill();
+      // seed body
+      ctx.fillStyle = `oklch(${55 + (i%3)*5}% 0.10 ${60 + (i%4)*8})`;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 2.5, 1.6, a, 0, Math.PI*2);
+      ctx.fill();
+      // highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(x - 0.3, y - 0.5, 0.8, 0.4, a, 0, Math.PI*2);
+      ctx.fill();
+    }
+  } else if (f.subKind === 'leaf') {
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(2, 2, sz*0.9, sz*0.5, 0, 0, Math.PI*2);
+    ctx.fill();
+    // leaf
+    const lg = ctx.createLinearGradient(-sz, 0, sz, 0);
+    lg.addColorStop(0, '#5a8a32');
+    lg.addColorStop(1, '#7aac4a');
+    ctx.fillStyle = lg;
+    ctx.beginPath();
+    ctx.moveTo(-sz, 0);
+    ctx.quadraticCurveTo(0, -sz*0.6, sz, 0);
+    ctx.quadraticCurveTo(0, sz*0.6, -sz, 0);
+    ctx.closePath();
+    ctx.fill();
+    // vein
+    ctx.strokeStyle = 'rgba(40, 60, 20, 0.6)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-sz, 0); ctx.lineTo(sz, 0);
+    ctx.stroke();
+    // bite marks (decreased size shows decay)
+    if (ratio < 1) {
+      ctx.fillStyle = '#e8dfc8';
+      const bites = Math.ceil((1-ratio)*4);
+      for (let i = 0; i < bites; i++) {
+        const a = i*1.7;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a)*sz*0.7, Math.sin(a)*sz*0.3, 1.6, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  } else if (f.subKind === 'berry') {
+    // cluster of berries
+    const count = Math.ceil(ratio * 5) + 1;
+    for (let i = 0; i < count; i++) {
+      const a = i * 1.4;
+      const r = sz*0.35;
+      const x = Math.cos(a)*r, y = Math.sin(a)*r;
+      // shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.arc(x+1, y+1.5, 2.6, 0, Math.PI*2);
+      ctx.fill();
+      // berry
+      const grad = ctx.createRadialGradient(x-1, y-1, 0, x, y, 3);
+      grad.addColorStop(0, `oklch(60% 0.20 ${15 + (i%3)*4})`);
+      grad.addColorStop(1, `oklch(40% 0.18 ${15 + (i%3)*4})`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.6, 0, Math.PI*2);
+      ctx.fill();
+      // highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath();
+      ctx.arc(x-0.7, y-0.9, 0.8, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+
+  // floating count
+  ctx.font = '600 10px JetBrains Mono';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // bg pill
+  const txt = String(Math.ceil(f.amount));
+  const tw = ctx.measureText(txt).width;
+  ctx.fillStyle = 'rgba(26,24,20,0.85)';
+  ctx.fillRect(f.x - tw/2 - 4, f.y - sz - 16, tw + 8, 12);
+  ctx.fillStyle = '#f3efe6';
+  ctx.fillText(txt, f.x, f.y - sz - 10);
+}
+
+function drawEgg(e) {
+  ctx.save();
+  ctx.translate(e.x, e.y);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath(); ctx.ellipse(1, 2, 3.5, 2, 0, 0, Math.PI*2); ctx.fill();
+  const pulse = 0.7 + 0.3*Math.sin(tick*0.1 + e.t*0.05);
+  const grad = ctx.createRadialGradient(-1, -1, 0, 0, 0, 4);
+  grad.addColorStop(0, '#fffaf0');
+  grad.addColorStop(1, e.team === 'red' ? `oklch(75% 0.06 ${T.redHue})` : `oklch(75% 0.05 ${T.blueHue})`);
+  ctx.fillStyle = grad;
+  ctx.globalAlpha = pulse;
+  ctx.beginPath(); ctx.ellipse(0, 0, 3.5, 2.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawQueen(q) {
+  if (!q.alive) {
+    ctx.strokeStyle = '#1a1814';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(q.x-9, q.y-9); ctx.lineTo(q.x+9, q.y+9);
+    ctx.moveTo(q.x+9, q.y-9); ctx.lineTo(q.x-9, q.y+9);
+    ctx.stroke();
+    return;
+  }
+  if (T.queenAura) {
+    const pulse = 0.5 + 0.3*Math.sin(tick*0.06);
+    const grad = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, 35 + pulse*10);
+    grad.addColorStop(0, q.team === 'red'
+      ? `oklch(55% 0.18 ${T.redHue} / 0.22)`
+      : `oklch(50% 0.15 ${T.blueHue} / 0.22)`);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(q.x, q.y, 35 + pulse*10, 0, Math.PI*2); ctx.fill();
+  }
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(q.x+3, q.y+3, 12, 8, 0, 0, Math.PI*2); ctx.fill();
+
+  // body — multi-segment
+  const c = teamColor(q.team);
+  const cd = teamColor(q.team, -10);
+  const ch = teamColor(q.team, +12);
+
+  // abdomen (large)
+  drawBodySegment(q.x - 1, q.y, 9, 6.5, 0, c, cd, ch);
+  // thorax
+  drawBodySegment(q.x + 6, q.y, 4.5, 4, 0, c, cd, ch);
+  // head
+  drawBodySegment(q.x + 11, q.y, 4, 3.5, 0, c, cd, ch);
+
+  // antennae
+  ctx.strokeStyle = cd;
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(q.x + 13, q.y - 2);
+  ctx.quadraticCurveTo(q.x + 18, q.y - 6, q.x + 20, q.y - 4);
+  ctx.moveTo(q.x + 13, q.y + 2);
+  ctx.quadraticCurveTo(q.x + 18, q.y + 6, q.x + 20, q.y + 4);
+  ctx.stroke();
+
+  // crown
+  ctx.fillStyle = '#d4a437';
+  ctx.strokeStyle = '#7a5a18';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(q.x - 4, q.y - 8);
+  ctx.lineTo(q.x - 5, q.y - 12);
+  ctx.lineTo(q.x - 2, q.y - 10);
+  ctx.lineTo(q.x, q.y - 13);
+  ctx.lineTo(q.x + 2, q.y - 10);
+  ctx.lineTo(q.x + 4, q.y - 12);
+  ctx.lineTo(q.x + 4, q.y - 8);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // hp bar
+  const w = 18, h = 2;
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillRect(q.x - w/2, q.y + 12, w, h);
+  ctx.fillStyle = c;
+  ctx.fillRect(q.x - w/2, q.y + 12, w * (q.hp / q.maxHp), h);
+
+  // food count
+  ctx.font = '600 9px JetBrains Mono';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#1a1814';
+  ctx.fillText(`♛ ${Math.floor(q.food)}`, q.x, q.y + 24);
+}
+
+function drawBodySegment(x, y, w, h, rot, mid, dark, light) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(1, 1, w, h, 0, 0, Math.PI*2); ctx.fill();
+  // body gradient
+  const grad = ctx.createRadialGradient(-w*0.3, -h*0.3, 0, 0, 0, w);
+  grad.addColorStop(0, light);
+  grad.addColorStop(0.5, mid);
+  grad.addColorStop(1, dark);
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.ellipse(0, 0, w, h, 0, 0, Math.PI*2); ctx.fill();
+  // outline
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 0.6;
+  ctx.beginPath(); ctx.ellipse(0, 0, w, h, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+}
+
+function drawWorker(a) {
+  const sz = T.antSize;
+  let mid = teamColor(a.team);
+  let dark = teamColor(a.team, -12);
+  let light = teamColor(a.team, +10);
+  if (a.flash > 0 && T.combatFlash) { mid = '#f0c050'; dark = '#a07020'; light = '#fff0a0'; }
+
+  ctx.save();
+  ctx.translate(a.x, a.y);
+  ctx.rotate(a.angle);
+
+  // legs (animated)
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 0.7;
+  const legL = 4 * sz;
+  for (let i = 0; i < 3; i++) {
+    const phase = a.legPhase + i * 1.0;
+    const offs = Math.sin(phase) * 1.5;
+    const baseX = (-1.5 + i * 1.5) * sz;
+    ctx.beginPath();
+    ctx.moveTo(baseX, 0.5*sz);
+    ctx.lineTo(baseX + offs, 1.5*sz);
+    ctx.lineTo(baseX + offs*0.8, legL);
+    ctx.moveTo(baseX, -0.5*sz);
+    ctx.lineTo(baseX - offs, -1.5*sz);
+    ctx.lineTo(baseX - offs*0.8, -legL);
+    ctx.stroke();
+  }
+
+  // body — three segments
+  // abdomen
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(-2.4*sz + 1, 0+1, 2.2*sz, 1.7*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  const grad1 = ctx.createRadialGradient(-2.4*sz - 0.5*sz, -0.5*sz, 0, -2.4*sz, 0, 2.5*sz);
+  grad1.addColorStop(0, light); grad1.addColorStop(1, dark);
+  ctx.fillStyle = grad1;
+  ctx.beginPath(); ctx.ellipse(-2.4*sz, 0, 2.2*sz, 1.7*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  // thorax
+  const grad2 = ctx.createRadialGradient(-0.3*sz, -0.3*sz, 0, 0, 0, 1.6*sz);
+  grad2.addColorStop(0, light); grad2.addColorStop(1, mid);
+  ctx.fillStyle = grad2;
+  ctx.beginPath(); ctx.ellipse(0, 0, 1.4*sz, 1.2*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  // head
+  const grad3 = ctx.createRadialGradient(2.5*sz - 0.3, -0.3, 0, 2.5*sz, 0, 1.6*sz);
+  grad3.addColorStop(0, light); grad3.addColorStop(1, dark);
+  ctx.fillStyle = grad3;
+  ctx.beginPath(); ctx.ellipse(2.5*sz, 0, 1.4*sz, 1.2*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  // antennae
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(3.5*sz, -0.7*sz);
+  ctx.quadraticCurveTo(5*sz, -2*sz, 5.5*sz, -1.5*sz);
+  ctx.moveTo(3.5*sz, 0.7*sz);
+  ctx.quadraticCurveTo(5*sz, 2*sz, 5.5*sz, 1.5*sz);
+  ctx.stroke();
+
+  ctx.restore();
+
+  // carrying
+  if (T.showCarry && a.carrying > 0) {
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.arc(a.x+1, a.y - 4*sz + 1, 1.6*sz, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#c8a248';
+    ctx.beginPath(); ctx.arc(a.x, a.y - 4*sz, 1.6*sz, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath(); ctx.arc(a.x - 0.5*sz, a.y - 4.5*sz, 0.6*sz, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function drawWarrior(a) {
+  const sz = T.warriorSize;
+  let mid = teamColor(a.team, -2, 0.02);
+  let dark = teamColor(a.team, -16);
+  let light = teamColor(a.team, +6);
+  if (a.flash > 0 && T.combatFlash) { mid = '#f0c050'; dark = '#a07020'; light = '#fff0a0'; }
+
+  ctx.save();
+  ctx.translate(a.x, a.y);
+  ctx.rotate(a.angle);
+
+  // shadow underneath
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(2, 2, 5*sz, 2.5*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  // legs (slower phase)
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 1.0;
+  const legL = 5 * sz;
+  for (let i = 0; i < 3; i++) {
+    const phase = a.legPhase * 0.6 + i * 1.0;
+    const offs = Math.sin(phase) * 1.8;
+    const baseX = (-2 + i * 1.8) * sz;
+    ctx.beginPath();
+    ctx.moveTo(baseX, 0.7*sz);
+    ctx.lineTo(baseX + offs, 2*sz);
+    ctx.lineTo(baseX + offs*0.8, legL);
+    ctx.moveTo(baseX, -0.7*sz);
+    ctx.lineTo(baseX - offs, -2*sz);
+    ctx.lineTo(baseX - offs*0.8, -legL);
+    ctx.stroke();
+  }
+
+  // abdomen — bigger
+  const grad1 = ctx.createRadialGradient(-2.8*sz - 0.7*sz, -0.7*sz, 0, -2.8*sz, 0, 3.5*sz);
+  grad1.addColorStop(0, light); grad1.addColorStop(1, dark);
+  ctx.fillStyle = grad1;
+  ctx.beginPath(); ctx.ellipse(-2.8*sz, 0, 2.8*sz, 2.2*sz, 0, 0, Math.PI*2); ctx.fill();
+  // armor segments
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-2.8*sz + (i-1)*1.2*sz, -2*sz);
+    ctx.lineTo(-2.8*sz + (i-1)*1.2*sz, 2*sz);
+    ctx.stroke();
+  }
+
+  // thorax
+  const grad2 = ctx.createRadialGradient(-0.3*sz, -0.3*sz, 0, 0, 0, 2*sz);
+  grad2.addColorStop(0, light); grad2.addColorStop(1, mid);
+  ctx.fillStyle = grad2;
+  ctx.beginPath(); ctx.ellipse(0, 0, 1.7*sz, 1.4*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  // head — larger and angular
+  const grad3 = ctx.createRadialGradient(3.2*sz - 0.4, -0.4, 0, 3.2*sz, 0, 2*sz);
+  grad3.addColorStop(0, light); grad3.addColorStop(1, dark);
+  ctx.fillStyle = grad3;
+  ctx.beginPath(); ctx.ellipse(3.2*sz, 0, 1.9*sz, 1.6*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  // mandibles — large pincers
+  ctx.fillStyle = dark;
+  ctx.strokeStyle = isInk();
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(4.5*sz, -1*sz);
+  ctx.quadraticCurveTo(6.5*sz, -1.5*sz, 7*sz, -0.4*sz);
+  ctx.quadraticCurveTo(5.5*sz, -0.7*sz, 4.5*sz, 0);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(4.5*sz, 1*sz);
+  ctx.quadraticCurveTo(6.5*sz, 1.5*sz, 7*sz, 0.4*sz);
+  ctx.quadraticCurveTo(5.5*sz, 0.7*sz, 4.5*sz, 0);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // antennae
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(4*sz, -1*sz);
+  ctx.quadraticCurveTo(6*sz, -2.5*sz, 6.5*sz, -2*sz);
+  ctx.moveTo(4*sz, 1*sz);
+  ctx.quadraticCurveTo(6*sz, 2.5*sz, 6.5*sz, 2*sz);
+  ctx.stroke();
+
+  // eyes
+  ctx.fillStyle = '#1a1814';
+  ctx.beginPath(); ctx.arc(3.6*sz, -0.7*sz, 0.5*sz, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(3.6*sz, 0.7*sz, 0.5*sz, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+
+  // hp bar (only if damaged)
+  if (a.hp < a.maxHp) {
+    const w = 12, h = 1.5;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(a.x - w/2, a.y - 8*sz, w, h);
+    ctx.fillStyle = teamColor(a.team);
+    ctx.fillRect(a.x - w/2, a.y - 8*sz, w * (a.hp / a.maxHp), h);
+  }
+}
+
+function drawBeetle(b) {
+  const sz = 1.2;
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  ctx.rotate(b.angle);
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(2, 2, 8*sz, 5*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  // legs
+  ctx.strokeStyle = '#0a0a0a';
+  ctx.lineWidth = 1.4;
+  const legL = 8 * sz;
+  for (let i = 0; i < 3; i++) {
+    const phase = b.legPhase * 0.7 + i * 1.0;
+    const offs = Math.sin(phase) * 2.5;
+    const baseX = (-3 + i * 2.5) * sz;
+    ctx.beginPath();
+    ctx.moveTo(baseX, 1.5*sz);
+    ctx.lineTo(baseX + offs, 4*sz);
+    ctx.lineTo(baseX + offs*0.7, legL);
+    ctx.moveTo(baseX, -1.5*sz);
+    ctx.lineTo(baseX - offs, -4*sz);
+    ctx.lineTo(baseX - offs*0.7, -legL);
+    ctx.stroke();
+  }
+
+  // body (carapace)
+  let bodyDark = '#1a2418';
+  let bodyMid = '#2a3a26';
+  let bodyLight = '#4a6242';
+  if (b.flash > 0 && T.combatFlash) { bodyMid = '#a04030'; bodyLight = '#e08060'; }
+
+  // abdomen — wide oval with gradient
+  const grad = ctx.createRadialGradient(-1*sz, -2*sz, 0, 0, 0, 7*sz);
+  grad.addColorStop(0, bodyLight);
+  grad.addColorStop(0.5, bodyMid);
+  grad.addColorStop(1, bodyDark);
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.ellipse(-1*sz, 0, 7*sz, 4.5*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  // wing-case split
+  ctx.strokeStyle = bodyDark;
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(-7*sz, 0); ctx.lineTo(4*sz, 0);
+  ctx.stroke();
+
+  // ridges
+  for (let i = 1; i < 4; i++) {
+    ctx.strokeStyle = `rgba(10,15,8,${0.3 + i*0.05})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    const xx = -6*sz + i*3*sz;
+    ctx.moveTo(xx, -3.5*sz);
+    ctx.quadraticCurveTo(xx-0.5, 0, xx, 3.5*sz);
+    ctx.stroke();
+  }
+
+  // head
+  ctx.fillStyle = bodyDark;
+  ctx.beginPath(); ctx.ellipse(5*sz, 0, 2.5*sz, 2*sz, 0, 0, Math.PI*2); ctx.fill();
+
+  // horn / mandibles — menacing
+  ctx.fillStyle = '#0a0a0a';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(7.5*sz, -1.2*sz);
+  ctx.quadraticCurveTo(10*sz, -2*sz, 10.5*sz, 0);
+  ctx.quadraticCurveTo(10*sz, 2*sz, 7.5*sz, 1.2*sz);
+  ctx.quadraticCurveTo(8.5*sz, 0, 7.5*sz, -1.2*sz);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // central horn
+  ctx.fillStyle = bodyDark;
+  ctx.beginPath();
+  ctx.moveTo(6.5*sz, 0);
+  ctx.lineTo(11*sz, -0.5*sz);
+  ctx.lineTo(11*sz, 0.5*sz);
+  ctx.closePath();
+  ctx.fill();
+
+  // eyes — red glow
+  ctx.fillStyle = '#c02020';
+  ctx.beginPath(); ctx.arc(5.5*sz, -1*sz, 0.7*sz, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(5.5*sz, 1*sz, 0.7*sz, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#ff8060';
+  ctx.beginPath(); ctx.arc(5.5*sz, -1*sz, 0.3*sz, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(5.5*sz, 1*sz, 0.3*sz, 0, Math.PI*2); ctx.fill();
+
+  // shell highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath(); ctx.ellipse(-1*sz, -2*sz, 3*sz, 1*sz, -0.3, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+
+  // hp bar
+  const w = 22, h = 2.5;
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(b.x - w/2, b.y - 14, w, h);
+  ctx.fillStyle = '#c0382a';
+  ctx.fillRect(b.x - w/2, b.y - 14, w * (b.hp / b.maxHp), h);
+}
+
+/* ---------- Sparkline ---------- */
+const spark = document.getElementById('spark');
+const sctx = spark.getContext('2d');
+function drawSpark() {
+  const w = spark.width, h = spark.height;
+  sctx.clearRect(0, 0, w, h);
+  if (popHistory.length < 2) return;
+  let max = 1;
+  for (const p of popHistory) max = Math.max(max, p.r, p.b);
+
+  sctx.strokeStyle = 'rgba(0,0,0,0.05)';
+  sctx.beginPath(); sctx.moveTo(0, h/2); sctx.lineTo(w, h/2); sctx.stroke();
+
+  const drawLine = (key, color) => {
+    sctx.strokeStyle = color;
+    sctx.lineWidth = 1.5;
+    sctx.beginPath();
+    for (let i = 0; i < popHistory.length; i++) {
+      const x = (i / 199) * w;
+      const y = h - (popHistory[i][key] / max) * (h - 2) - 1;
+      if (i === 0) sctx.moveTo(x, y);
+      else sctx.lineTo(x, y);
+    }
+    sctx.stroke();
+  };
+  drawLine('r', `oklch(55% 0.18 ${T.redHue})`);
+  drawLine('b', `oklch(50% 0.15 ${T.blueHue})`);
+}
+
+/* ---------- HUD ---------- */
+let lastFps = 60, fpsAcc = 0, fpsCount = 0, lastT = performance.now();
+function updateHUD(now) {
+  const dt = now - lastT; lastT = now;
+  fpsAcc += 1000/dt; fpsCount++;
+  if (fpsCount > 30) { lastFps = Math.round(fpsAcc/fpsCount); fpsAcc = 0; fpsCount = 0; }
+  document.getElementById('m-tick').textContent = tick;
+  document.getElementById('m-fps').textContent = lastFps;
+  document.getElementById('m-pop').textContent = ants.length;
+
+  const r = ants.filter(a => a.team === 'red').length;
+  const b = ants.filter(a => a.team === 'blue').length;
+  const totalFood = foods.reduce((s,f) => s+f.amount, 0);
+  const rs = queens.filter(q => q.team === 'red').reduce((s,q) => s+q.food, 0);
+  const bs = queens.filter(q => q.team === 'blue').reduce((s,q) => s+q.food, 0);
+
+  document.getElementById('s-red').textContent = r;
+  document.getElementById('s-blue').textContent = b;
+  document.getElementById('s-food').textContent = Math.floor(totalFood);
+  document.getElementById('s-red-stash').textContent = Math.floor(rs);
+  document.getElementById('s-blue-stash').textContent = Math.floor(bs);
+  document.getElementById('s-beetles').textContent = beetles.length;
+  document.getElementById('s-deaths').textContent = casualties;
+}
+
+function loop(now) {
+  if (running) {
+    const steps = Math.max(1, Math.round(T.speed));
+    const subDt = T.speed / steps;
+    for (let i = 0; i < steps; i++) step(subDt);
+  }
+  draw();
+  drawSpark();
+  updateHUD(now);
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Tweaks wiring ---------- */
+function setTweak(key, val) {
+  T[key] = val;
+  if (['terrain','texture'].includes(key)) buildTerrain();
+  if (key === 'rockCount') placeRocks();
+  if (key === 'pebbleCount') placePebbles();
+  if (key === 'decor') placeDecor();
+}
+
+document.querySelectorAll('input[type="range"]').forEach(input => {
+  const key = input.dataset.tweak;
+  input.addEventListener('input', () => {
+    let v = parseFloat(input.value);
+    setTweak(key, v);
+    updateLabels();
+  });
+});
+document.querySelectorAll('.seg').forEach(seg => {
+  const key = seg.dataset.tweak;
+  seg.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', () => {
+      seg.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      setTweak(key, b.dataset.v);
+      if (key === 'preset') applyPreset(b.dataset.v);
+      updateLabels();
+    });
+  });
+});
+document.querySelectorAll('.toggle').forEach(tog => {
+  const key = tog.dataset.tweak;
+  tog.addEventListener('click', () => {
+    tog.classList.toggle('on');
+    setTweak(key, tog.classList.contains('on'));
+    updateLabels();
+  });
+});
+
+function updateLabels() {
+  const id = (k,v) => document.getElementById(k).textContent = v;
+  id('v-trail', T.trails ? 'on' : 'off');
+  id('v-phlife', T.pheromoneLife);
+  id('v-phfol', T.pheromoneFollow.toFixed(2));
+  id('v-forager', T.forageRadius);
+  id('v-senser', T.senseRadius);
+  id('v-carry', T.showCarry ? 'on' : 'off');
+  id('v-aura', T.queenAura ? 'on' : 'off');
+  id('v-flash', T.combatFlash ? 'on' : 'off');
+  id('v-size', T.antSize.toFixed(1) + '×');
+  id('v-wsize', T.warriorSize.toFixed(1) + '×');
+  id('v-redhue', T.redHue + '°');
+  id('v-bluehue', T.blueHue + '°');
+  id('v-startred', T.startRed);
+  id('v-startblue', T.startBlue);
+  id('v-cap', T.popCap);
+  id('v-ratio', `${T.workerPct} / ${100-T.workerPct}`);
+  document.getElementById('bar-w').style.width = T.workerPct + '%';
+  document.getElementById('bar-f').style.width = (100-T.workerPct) + '%';
+  id('v-queens', T.queens);
+  id('v-eggcost', T.eggCost);
+  id('v-summoncost', T.summonCost);
+  id('v-summoncd', T.summonCd);
+  id('v-hatch', T.hatchTime);
+  id('v-cooldown', T.breedCooldown);
+  id('v-foodrate', T.foodRate.toFixed(1) + '×');
+  id('v-foodsize', T.foodSize);
+  id('v-foodcap', T.foodCap);
+  id('v-bite', T.biteSize);
+  id('v-cap2', T.carryCap);
+  id('v-warspeed', T.warriorSpeed.toFixed(2) + '×');
+  id('v-guard', T.guardRadius);
+  id('v-density', T.densityThresh);
+  id('v-disp', T.dispersion);
+  id('v-sigr', T.signalRange);
+  id('v-sigb', T.signalBoost + '%');
+  id('v-sight', T.sight);
+  id('v-strength', T.strength);
+  id('v-hp', T.hp);
+  id('v-whp', T.warriorHp);
+  id('v-qhp', T.queenHp);
+  id('v-wfb', T.workersFight ? 'on' : 'off');
+  id('v-beetles', T.beetlesEnabled ? 'on' : 'off');
+  id('v-bfreq', T.beetleFreq);
+  id('v-bhp', T.beetleHp);
+  id('v-bstr', T.beetleStr);
+  id('v-bspd', T.beetleSpeed.toFixed(1) + '×');
+  id('v-rocks', T.rockCount);
+  id('v-peb', T.pebbleCount);
+  id('v-deco', T.decor ? 'on' : 'off');
+  id('v-speed', T.speed.toFixed(1) + '×');
+  id('v-antspeed', T.antSpeed.toFixed(1) + '×');
+  id('v-chaos', T.chaos.toFixed(2));
+  id('v-life', T.lifespan);
+}
+
+function applyPreset(name) {
+  if (name === 'balance')      Object.assign(T, { foodRate:1.0, workerPct:75, eggCost:5, popCap:300 });
+  else if (name === 'famine')  Object.assign(T, { foodRate:0.2, workerPct:80, eggCost:8, foodCap:15 });
+  else if (name === 'boom')    Object.assign(T, { foodRate:3.0, workerPct:65, eggCost:3, breedCooldown:20, popCap:500 });
+  else if (name === 'war')     Object.assign(T, { foodRate:1.5, workerPct:35, strength:5, sight:90, beetleFreq:400 });
+  document.querySelectorAll('input[type="range"]').forEach(input => {
+    const k = input.dataset.tweak;
+    if (k in T) input.value = T[k];
+  });
+  document.querySelectorAll('.seg').forEach(seg => {
+    const k = seg.dataset.tweak;
+    if (k in T && k !== 'preset') {
+      seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === T[k]));
+    }
+  });
+}
+
+/* ---------- Controls ---------- */
+const playBtn = document.getElementById('btn-play');
+playBtn.addEventListener('click', () => {
+  running = !running;
+  playBtn.textContent = running ? '❚❚ Pause' : '▶ Play';
+  playBtn.classList.toggle('active', running);
+  toast(running ? 'Running' : 'Paused');
+});
+document.getElementById('btn-step').addEventListener('click', () => { step(T.speed); toast('+1 step'); });
+document.getElementById('btn-reset').addEventListener('click', () => { reset(); toast('Reset'); });
+
+const toastEl = document.getElementById('toast');
+let toastT = null;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => toastEl.classList.remove('show'), 1100);
+}
+
+const alertEl = document.getElementById('alert');
+let alertT = null;
+function showAlert(msg) {
+  alertEl.textContent = msg;
+  alertEl.classList.add('show');
+  clearTimeout(alertT);
+  alertT = setTimeout(() => alertEl.classList.remove('show'), 1600);
+}
+
+/* ---------- Painting ---------- */
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  if (paintMode === 'food') { spawnFood(x, y, T.foodSize); toast('Food'); }
+  else if (paintMode === 'red') {
+    const has = queens.find(q => q.team==='red' && q.alive);
+    if (!has) { queens.push({ kind:'queen', team:'red', x, y, hp:T.queenHp, maxHp:T.queenHp, food:0, breedTimer:0, summonTimer:0, alive:true }); toast('Red queen'); }
+    else { spawnAnt('red', x, y, rng() < T.workerPct/100 ? 'worker' : 'warrior'); }
+  }
+  else if (paintMode === 'blue') {
+    const has = queens.find(q => q.team==='blue' && q.alive);
+    if (!has) { queens.push({ kind:'queen', team:'blue', x, y, hp:T.queenHp, maxHp:T.queenHp, food:0, breedTimer:0, summonTimer:0, alive:true }); toast('Blue queen'); }
+    else { spawnAnt('blue', x, y, rng() < T.workerPct/100 ? 'worker' : 'warrior'); }
+  }
+  else if (paintMode === 'beetle') {
+    beetles.push({ kind:'beetle', x, y, vx:0, vy:0, angle:0, hp:T.beetleHp, maxHp:T.beetleHp, target:null, cd:0, flash:0, legPhase:0 });
+    toast('Beetle dropped');
+  }
+  else if (paintMode === 'rock') {
+    const r = 14 + rng()*22;
+    const verts = [];
+    const sides = 6 + Math.floor(rng()*4);
+    for (let s = 0; s < sides; s++) {
+      verts.push({ a:(s/sides)*Math.PI*2, r: r*(0.7 + rng()*0.45) });
+    }
+    rocks.push({ x, y, r, verts, hue: 30 + rng()*30, light: 0.5 + rng()*0.2 });
+    toast('Rock');
+  }
+});
+
+const paintHint = document.getElementById('paint-hint');
+function setPaint(mode, label) {
+  paintMode = paintMode === mode ? null : mode;
+  paintHint.textContent = `Paint: ${label} — click canvas. ESC to cancel.`;
+  paintHint.classList.toggle('show', !!paintMode);
+}
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
+  else if (e.key === 's' || e.key === 'S') document.getElementById('btn-step').click();
+  else if (e.key === 'r' || e.key === 'R') document.getElementById('btn-reset').click();
+  else if (e.key === 'f' || e.key === 'F') setPaint('food', 'FOOD');
+  else if (e.key === '1') setPaint('red', 'RED ant / queen');
+  else if (e.key === '2') setPaint('blue', 'BLUE ant / queen');
+  else if (e.key === '3') setPaint('beetle', 'BEETLE');
+  else if (e.key === 'o' || e.key === 'O') setPaint('rock', 'ROCK');
+  else if (e.key === 'Escape') { paintMode = null; paintHint.classList.remove('show'); }
+});
+
+let resizeT = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { resize(); buildTerrain(); }, 100);
+});
+
+/* ---------- Boot ---------- */
+resize();
+reset();
+running = true;
+playBtn.textContent = '❚❚ Pause';
+playBtn.classList.add('active');
+updateLabels();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
